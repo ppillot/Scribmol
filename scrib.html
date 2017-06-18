@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<meta charset="utf-8" />
+
+		<!-- Always force latest IE rendering engine (even in intranet) & Chrome Frame
+		Remove this if you use the .htaccess -->
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+		<title>ScribMol</title>
+		<meta name="description" content="" />
+		<meta name="author" content="Paul PILLOT" />
+
+		<!-- Replace favicon.ico & apple-touch-icon.png in the root of your domain and delete these references -->
+		<!--<link rel="shortcut icon" href="/favicon.ico" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />-->
+		
+		<link rel="stylesheet" href="libs/chemdoodle/ChemDoodleWeb.css" type="text/css">
+		<script type="text/javascript" src="libs/chemdoodle/ChemDoodleWeb-libs.js"></script>
+		<script type="text/javascript" src="libs/chemdoodle/ChemDoodleWeb-unpacked.js"></script>
+		<script src="libs/jsmol/JSmol.min.js" type="text/javascript"></script>
+		<!-- <script type="text/javascript" src="libs/ChemDoodleWeb/src/ChemDoodleWeb-unpacked.js"></script> -->
+		<link rel="stylesheet" href="libs/chemdoodle/sketcher/jquery-ui-1.8.7.custom.css" type="text/css">
+		<script type="text/javascript" src="libs/chemdoodle/sketcher/jquery-ui-1.8.7.custom.min.js"></script>
+		<script type="text/javascript" src="libs/chemdoodle/sketcher/ChemDoodleWeb-sketcher-unpacked.js"></script>
+		<script type="text/javascript">
+		var ch4MolFile ="a|__Jmol-12_07291116593D 1   1.00000     0.00000     0 | Jmol version 12.2.RC1_HOLD  2011-07-06 18:31 EXTRACT: ({0:4})|  5  4  0  0  0  0              1 V2000|   0.00002   0.00002   0.00002 C   0  0  0  0  0  0|   0.64042   0.64042   0.64042 H   0  0  0  0  0  0|  -0.64057  -0.64057   0.64053 H   0  0  0  0  0  0|  -0.64057   0.64053  -0.64057 H   0  0  0  0  0  0|   0.64053  -0.64057  -0.64057 H   0  0  0  0  0  0|  1  2  1  0  0  0|  1  3  1  0  0  0|  1  4  1  0  0  0|  1  5  1  0  0  0|M  END";
+			function jmolMol() {
+				var txt = Jmol.scriptWait(scribmol , 'subset not hydrogen; molfile = write(\"mol\"); subset; message \"#EOF\"');
+				var tab = txt.substr(txt.indexOf('scriptEcho')+22).split("| ")
+				tab.length=tab.length-1;
+				return "blablabla\n"+tab.join("\n")
+			}
+			var appletJmolState = {
+				pickAtom : "set picking assignatom_c",
+				pickBond : "set picking assignbond_p",
+				display : "wireframe 0.15; cpk 23%",
+				spt : "set picking assignatom_c" + ";" + "set picking assignbond_p",
+				zoom : "zoomto 0.4 {*} 0",
+				mep : "",
+				charge : "",
+				chirality : "",
+				isRotatingBond : false,
+				appendAtom : function(txt){ this.pickAtom = "set picking assignatom_" + txt; this.setSpt()},
+				deleteAtom : function() {this.pickAtom = "set picking deleteatom"; this.setSpt()},
+				deleteBond : function() {this.pickBond = "set picking deletebond; unbind \"LEFT+drag\" _rotateBranch; "; this.isRotatingBond = false; this.setSpt()},
+				assignBond : function() {this.pickBond = "set picking assignbond_p; unbind \"LEFT+drag\" _rotateBranch; "; this.isRotatingBond = false; this.setSpt()},
+				rotateBond : function() {this.pickBond = "set picking rotatebond; bind \"LEFT+drag\" _rotateBranch; "; this.isRotatingBond = true; this.setSpt()},
+				dragAtom : function()  {this.pickAtom = "set picking dragminimize"; this.setSpt()},
+				changeDisplay : function(txt) {this.display = txt ; this.setSpt()},
+				changeChirality: function(checked) {
+					if (checked) {
+						this.chirality = "select *; label %[chirality]; color label white;";
+						this.charge = "";
+						$('#bouton_charge_partielle').prop('checked', false).button('refresh')
+					} else {
+						this.chirality = "";
+						Jmol.script(scribmol, "select*; label off");
+					}
+					this.setSpt();
+				},
+				changeCharge: function(checked) { 
+					if (checked) {
+						this.chirality = "";
+						this.charge = "select *; calculate partialcharge; label \"%[partialCharge]\"";
+						$('#bouton_chiralite').prop('checked', false).button('refresh')
+					} else {
+						this.charge = "";
+						Jmol.script(scribmol, "select*; label off");
+					}
+					this.setSpt();
+				},
+				changeMep: function(checked){
+					this.mep = (checked)? "select *; calculate partialcharge; \
+											a={*}.partialcharge.min; b={*}.partialcharge.max; if (a==0 && b==0) {{*}.partialcharge = 0.1; {*}.partialcharge=0.0}; \
+											moyenne = {*}.partialcharge; ecart = (b-a)/10; dmin= moyenne-ecart; dmax=moyenne+ecart;\
+											isosurface s1 resolution 5.5 vdw color range @dmin @dmax map MEP translucent":""; 
+																
+					if (!checked) Jmol.script(scribmol ,"isosurface s1 delete"); 
+					this.setSpt()
+				},
+				setSpt : function() {this.spt = "set bondpicking true; " + this.pickAtom + "; " + this.pickBond + "; "+ this.display + "; " + this.chirality + "; " + this.charge + "; " + this.mep + ";" ; 
+										Jmol.script(scribmol ,this.spt)}
+				
+			}
+			function messages(mol,txt,nb) {
+				console.log(txt);
+				if(txt.indexOf("assign ")!=-1) {actualise()}
+				else if(txt.indexOf("#EOF")!=-1) {jmol2Doodle2()}
+			}
+			function messagePick(mol,txt) {
+				console.log(txt);
+				var txt = " "+txt;
+				if(txt.indexOf("delete")!=-1) {actualise();}
+				else if ((txt.indexOf("bond")!=-1) && (!appletJmolState.isRotatingBond)) {actualise();}
+				
+			}
+			function actualise() {
+				//alert('coucou');
+				//return;
+				Jmol.script(scribmol ,"delete _H and connected(0); minimize addhydrogens; "+ appletJmolState.display +"; "+ appletJmolState.zoom+"; "+appletJmolState.mep+"; "+appletJmolState.chirality+"; "+appletJmolState.charge +"; checkBonding" );
+				jmol2Doodle();
+			}
+			
+			function jmol2Doodle() {
+				Jmol.script(scribmol ,'subset not hydrogen; molfile = write(\"mol\"); subset; message \"#EOF\"');
+				
+			}
+			function jmol2Doodle2() {
+				var fileContent = Jmol.evaluate(scribmol , "molfile");
+				sketcher.loadMolecule(writeMol.read(fileContent));
+			}
+			function doodle2Jmol() {
+				//jmolScript('load DATA \"model\"\n' + writeMol.write(sketcher.getMolecule()) + ' \"model\" filter \'2D\'); 
+				var molFile = ChemDoodle.writeMOL(sketcher.getMolecule());
+				
+				//nettoyons la 3D !
+				var tab = molFile.split("\n");
+				for (i=0; i<tab.length; i++) {
+					var l = tab[i];
+					if (l.indexOf("   ")==0) { //c'est une ligne de coordonnées
+						tab[i] = l.substring(0,23)+" 0.0000"+l.substring(30)
+					}
+				}//alert (molFile + "\n" +tab.join("\n"))
+				molFile = tab.join("\n");
+				
+				
+				//var txt2 = txt.split("   ")[3];
+				//var val = parseFloat(txt2);
+				var spt = "load DATA \"model\"\n" + molFile + " \"model\" " + "filter '2D';";
+                console.log(spt);
+				spt += " checkBonding; " + appletJmolState.spt;
+				//spt += (val==0) ? "filter '2D'" : "; minimize addhydrogens; calculate hydrogens";
+				//alert(spt);
+				Jmol.script(scribmol ,spt);
+			}
+			nbSnapshots = 0;
+			SnapshotInfo = function () {
+				this.doodleMOL =""
+				this.jmolState = ""
+				this.doodleImg =""
+				this.jmolImg =""
+				
+				this.restore = function () {
+					sketcher.loadMolecule(writeMol.read(this.doodleMOL));
+					/*var spt = "load DATA \"model\"\n" + this.doodleMOL + "END \"model\" filter \"2D\"";
+					spt += "; " + appletJmolState.spt;
+					//*/
+					Jmol.script(scribmol ,this.jmolState);
+				}
+			}
+			snapshotInfos = new Array();
+			function snapshot() {
+				//recupérer l'image du canevas sketcher
+				
+				//créer un nouveau canevas dans la div results
+				//$('results').append("<canvas id=\"snap" +nbSnapshots+ "\"></canvas>");
+				
+				//utiliser chemdoodle pour reproduire la molécule dedans
+				var a = sketcher.getMolecule()
+				myCanvas.loadMolecule(a)
+				sketcher.center()
+				sketcher.repaint();
+				
+				//on récupère l'image dans myCanvas
+				var imgData = document.getElementById('snapshot').toDataURL("image/png");
+				
+				//on crée le texte de la balise image
+				var snapshotId = "snapshotnum" + snapshotInfos.length;
+				var num = snapshotInfos.length;
+				var balise = "&nbsp;<img src=\"" + imgData +"\" id=\"" + snapshotId +"\" />";
+				
+				//on ajoute l'image à la liste
+				$('#results').append(balise);
+				
+				//on créé l'objet qui stocke les clichés
+				var cliche = new SnapshotInfo()
+				cliche.doodleMOL = ChemDoodle.writeMOL(sketcher.getMolecule());
+				cliche.doodleImg = imgData;
+				//jmolScriptWait('molfile = write("mol")');
+				cliche.jmolState = Jmol.getPropertyAsString(scribmol , "stateinfo");
+				
+				snapshotInfos.push(cliche);
+				
+  				$('#'+snapshotId).click(function(){snapshotInfos[num].restore()})
+			}
+			function optimise(txt){
+				var is_smile = false;
+				if (typeof(txt)=="undefined") {
+					txt =  Jmol.evaluate(scribmol , "{*}.find('smiles')" );
+					is_smile = true;
+				}
+				var smile = txt;//encodeURIComponent(txt);//.replace(/\//g,""));
+				//alert(smile);
+				jQuery.get("https://cactus.nci.nih.gov/chemical/structure/" + smile + "/sdf?get3d=true", {
+            },function(data){
+					if (data !== "") {
+						var spt = "load DATA \"model\"\n" + data + "END \"model\" ";
+						spt += "; " + appletJmolState.spt;
+						if (!is_smile) spt += "; set echo bottom left; font echo 20 sansserif bol; color echo white; echo "+txt;
+						Jmol.script(scribmol ,spt);
+					} else alert("Aucun modèle correspondant à votre recherche n'a été retrouvé")
+					
+					
+				})
+				jQuery.get("https://cactus.nci.nih.gov/chemical/structure/" + smile + "/file?format=mol", {
+            },function(data){
+					if (data!="") {
+						var d = removeH(data)
+						sketcher.loadMolecule(writeMol.read(d));
+					}
+					
+				})
+			}
+			function charge(){
+				var requete = prompt("Molécule à rechercher","Aspirine")
+				if (requete.length>0) optimise(requete)
+			}
+			function removeH(molFile){
+				var txt = "";
+				var tabFile = molFile.split("\n");
+				
+				//on va chercher en ligne 4, le nombre d'atomes et de liaisons
+				var ligne = tabFile[3];
+				var nbAtomes = parseInt(ligne.substring(0,3)); var nbLiaisons = parseInt(ligne.substring(3,6))
+				
+				var hydrogenes = new Array();
+				var renumerotation = new Array();
+				var tabFile2 = new Array();
+				
+				var previousAtom = 0;
+				for (i=4;i<=3+nbAtomes;i++) {
+					if (tabFile[i].indexOf(" H ")!=-1) {
+						hydrogenes[i-3]=1;
+					} else {
+						previousAtom++;
+						tabFile2.push(tabFile[i]);
+						if (previousAtom==i-3) continue;
+						else {
+							renumerotation[i-3] = previousAtom;
+						}
+					}
+				}
+				//on édite les lignes si nécessaire
+				var nbLiaisons2 = nbLiaisons;
+				if (hydrogenes.length>0) {
+					nbLiaisons2 = 0;
+					for (i=4+nbAtomes;i<=3+nbAtomes+nbLiaisons;i++) {
+						//le premier atome
+						var l = tabFile[i]
+						var pad = "   ";
+						var at1 = parseInt(l.substr(0,3));
+						var at2 = parseInt(l.substr(3,3));
+						if ((typeof(hydrogenes[at1])!="undefined")||(typeof(hydrogenes[at2])!="undefined")) continue;
+						if (typeof(renumerotation[at1])!="undefined") {
+							var t = renumerotation[at1].toString();
+							l = pad.substr(0,3-t.length) + t + l.substr(3) 
+						}
+						if (typeof(renumerotation[at2])!="undefined") {
+							var t = renumerotation[at2].toString();
+							l = l.substr(0,3) + pad.substr(0,3-t.length) + t + l.substr(6) 
+						}
+						tabFile2.push(l);
+						nbLiaisons2++;
+					}
+					var tab = tabFile.slice(0,3);
+					var l = pad.substr(0,3-previousAtom.toString().length) + previousAtom + pad.substr(0,3-nbLiaisons2.toString().length) + nbLiaisons2 + ligne.substr(6);
+					tab = tab.concat(l,tabFile2,tabFile.slice(4+nbAtomes+nbLiaisons))
+					
+				} else var tab = tabFile;
+				//alert(molFile+"\n\n"+tab.join("\n"))							
+				return tab.join("\n");
+			}
+			function ajouterAtomeX() {
+				var elt = prompt("Symbole chimique de l'élément à ajouter :","C").toLowerCase();
+				var elements = ",ac,ag,al,am,ar,as,at,au,b,ba,be,bh,bi,bk,br,c,ca,cd,ce,cf,cl,cm,cn,co,cr,cs,cu,\
+				d,db,ds,dy,er,es,eu,f,fe,fm,fr,ga,gd,ge,h,he,hf,hg,ho,hs,i,in,ir,k,kr,la,li,lr,lu,md,mg,mn,mo,mt,\
+				n,na,nb,nd,ne,ni,no,np,o,os,p,pa,pb,pd,pm,po,pr,pt,pu,ra,rb,re,rf,rg,rh,rn,ru,s,sb,sc,se,sg,si,sm,\
+				sn,sr,t,ta,tb,tc,te,th,ti,tl,tm,u,v,w,xe,y,yb,zn,zr,";
+				
+				if (elements.indexOf(","+elt+",")!=-1) {
+					appletJmolState.appendAtom(elt)
+				} else {
+					alert("Symbole chimique non reconnu...\nC est utilisé par défaut")
+					appletJmolState.appendAtom('c')
+				}
+			}
+/*			function messageMinimization(applet,txt,step,E,dE) {
+				//alert(val)
+				$( "#progress" ).progressbar("option", "value", step );
+				if (txt=="done") {
+					$( "#progress" ).progressbar("option", "value", 100 );
+				}
+			}
+			$(function() {
+		$( "#progress" ).progressbar({value: 50});
+	});*/
+			function affichageFormule() {
+				var dvlp = !document.getElementById('bouton_dvlp').checked;
+	  				
+	  					sketcher.specs.atoms_showAllAtoms_2D = dvlp;
+	  					sketcher.specs.atoms_displayTerminalCarbonLabels_2D = dvlp;
+	  					sketcher.repaint();
+	  			
+			}
+			$(function() {
+				
+				//$( '[name="assign"]' ).button();
+				$( '#atomes' ).buttonset();
+				
+				//$( '[name="bond"]' ).button();
+				$( '#liaisons' ).buttonset();
+				
+				//$( '[name="display"]' ).button();
+				$( '#affichage' ).buttonset();
+				
+				//$('#formule').buttonset();
+				
+				$('#cactus').click(function(){
+	 				var txt = $('#autocomplete').val();
+	 				if (txt.length<2){
+	 					alert("Requête trop courte");
+	 					
+	 				}else optimise(txt);
+	  			});
+	  			
+	  			$('#autocomplete').keypress(function(event) {
+  					if ( event.which == 13 ) $('#cactus').click();
+	  			})
+	  			
+	  			$('#bouton_dvlp').change(function(){
+	  				affichageFormule()
+	  			})
+	  			/*$('#bouton_topo').change(function(){
+	  				affichageFormule();
+	  			});*/
+			});
+
+		</script>
+		<style type="text/css">
+			body {
+				font-family: Helvetica, Arial, Verdana;
+				margin: 0px;
+				padding: 10px;
+				background: #eee;
+		
+			}
+			.bouton, .bouton img {
+				padding: 0px;
+				margin: 0px;
+			}
+			.barre_boutons {
+				margin-bottom: 2px;
+				text-align: center;
+			}
+			.barre_boutons .ui-buttonset .ui-button {
+				margin-left: -2px;
+				margin-right: -3px;
+			}
+			#progress {
+				height: 12px;
+				width: 400px;
+			}
+			.ui-progressbar-value .ui-widget-header .ui-corner-left {
+				background-color: #EECC00;
+			}
+			button, input {
+				font-size:medium;
+			}
+			button img {
+				vertical-align: text-bottom;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div>
+			<header>
+				<h1>ScribMol</h1>
+			</header>
+			<nav>
+				
+			</nav>
+
+			<div>
+				<table>
+					<tr>
+						<td valign="bottom">
+							<script type=text/javascript>
+								// changes the default JMol color of hydrogen to black so it appears on white backgrounds
+								ChemDoodle.ELEMENT['H'].jmolColor = 'black';
+								// darkens the default JMol color of sulfur so it appears on white backgrounds
+								ChemDoodle.ELEMENT['S'].jmolColor = '#B9A130';
+								// initializes the SketcherCanvas; make sure to set the path to the icons correctly!
+								var sketcher = new ChemDoodle.SketcherCanvas('sketcher', 400, 400, 'libs/chemdoodle/sketcher/icons/', ChemDoodle.featureDetection.supports_touch(), true);
+								// sets terminal carbon labels to display
+								sketcher.specs.atoms_displayTerminalCarbonLabels_2D = true;
+								sketcher.specs.atoms_showHiddenCarbons_2D = false;
+								// sets atom labels to be colored by JMol colors, which are easy to recognize
+								sketcher.specs.atoms_useJMOLColors = true;
+								// the following two settings add overlap clear widths, so that some depth is introduced to overlapping bonds
+								sketcher.specs.bonds_clearOverlaps_2D = true;
+								sketcher.specs.bonds_overlapClearWidth_2D = 2;
+								
+								//pp
+								sketcher.specs.atoms_showAllAtoms_2D = true;
+								
+								// the component needs to be repainted here because we do not call the Canvas.loadMolecule() function
+								sketcher.repaint();
+								writeMol = new ChemDoodle.io.MOLInterpreter();
+							</script>
+						</td>
+						<td valign="bottom" >
+							<div class="barre_boutons"><span id="atomes">
+								<input type="radio" onclick="appletJmolState.appendAtom('c')" name="assign" id="bouton_c" checked="checked"/>
+									<label for="bouton_c"><img src="img/c.png" title="Remplacer l'élément par un carbone"/></label>
+								<input type="radio" onclick="appletJmolState.appendAtom('n')" name="assign"  id="bouton_n"/>
+									<label for="bouton_n"><img src="img/n.png" title="Remplacer l'élément par un azote"/></label>
+								<input type="radio" onclick="appletJmolState.appendAtom('o')" name="assign"  id="bouton_o"/>
+									<label for="bouton_o"><img src="img/o.png" title="Remplacer l'élément par un oxygène"/></label>
+								<input type="radio" onclick="ajouterAtomeX()" name="assign"  id="bouton_x"/>
+									<label for="bouton_x"><img src="img/x.png" title="Remplacer l'élément par un élément chimique au choix"/></label>
+								<input type="radio" onclick="appletJmolState.deleteAtom()" name="assign"  id="bouton_delete"/>
+									<label for="bouton_delete"><img src="img/delete.png" title="Effacer l'atome"/></label>
+								<input type="radio" onclick="appletJmolState.dragAtom()" name="assign"  id="bouton_drag"/>
+									<label for="bouton_drag"><img src="img/drag.png" title="Déplacer l'atome"/></label>
+									
+							</span>
+							&nbsp;
+							<span id="liaisons">
+								<input type="radio" onclick="appletJmolState.assignBond()" name="bond" id="bouton_bond" checked="checked"/>
+									<label for="bouton_bond"><img src="img/bond.png" title="Changer l'ordre des liaisons"/></label>
+								<input type="radio" onclick="appletJmolState.deleteBond()" name="bond"  id="bouton_delete_bond"/>
+									<label for="bouton_delete_bond"><img src="img/delete.png" title="Effacer la liaison"/></label>
+								<input type="radio" onclick="appletJmolState.rotateBond()" name="bond"  id="bouton_rotate"/>
+									<label for="bouton_rotate"><img src="img/rotate.png" title="Rotation autour de la liaison"/></label>
+									
+							</span>
+							&nbsp;
+							<span id="affichage">
+								<input type="radio" onclick="appletJmolState.changeDisplay('cpk')" name="display" id="bouton_cpk"/>
+									<label for="bouton_cpk"><img src="img/cpk.png" title="Afficher en sphères"/></label>
+								<input type="radio" onclick="appletJmolState.changeDisplay('wireframe 0.15; cpk 23%')" name="display"  id="bouton_betb" checked="checked"/>
+									<label for="bouton_betb"><img src="img/betb.png" title="Afficher en boules et bâtons"/></label>
+								<input type="checkbox" onclick="appletJmolState.changeCharge(this.checked)" id="bouton_charge_partielle"/>
+									<label for="bouton_charge_partielle"><img src="img/charges.png" title="Afficher les charges partielles" /></label>
+								<input type="checkbox" onclick="appletJmolState.changeChirality(this.checked)" id="bouton_chiralite"/>
+									<label for="bouton_chiralite"><img src="img/chiral.png" title="Afficher les chiralités" /></label>
+								<input type="checkbox" onclick="appletJmolState.changeMep(this.checked)" id="bouton_potentiel_electrostatique" />
+									<label for="bouton_potentiel_electrostatique"><img src="img/cpart.png" title="Afficher le potentiel électrostatique" /></label>	
+							</span>
+							</div>	
+								
+							
+							<script type="text/javascript">
+								var cmd="function checkBonding() { \
+									select (carbon and bondcount>4 and charge=0); \
+									if ({selected}.size>0) {\
+										color background yellow; halos on; color halos red;\
+										set echo top; font echo 14 sansserif; color echo red;\
+										echo Ces atomes de carbone possèdent trop de liaisons|Supprimer un ou plusieurs groupements;\
+									} else { \
+										color background [x444444]; select all; halos off; set echo top; echo;\
+									}	\
+								};";
+								enlocal = ((document.location.href.indexOf('http') == 0)) ? '' : 'Signed';
+								var Info = {
+									addSelectionOptions : false,
+									color : "#444444",
+									debug : false,
+									defaultModel : "",
+									height : '400',
+									isSigned : (enlocal == 'Signed'),
+									jarFile : "JmolApplet" + enlocal + "0.jar",
+									jarPath : "libs/jsmol/java",
+									j2sPath : "libs/jsmol/j2s",
+									memoryLimit : 512,
+									readyFunction : null,
+									script : cmd+"set antialiasdisplay false; set bondpicking true; set debugscript on; set messagecallback \"messages\"; set pickcallback \"messagePick\"; load data \"model\"" + ch4MolFile + " \"model\" ; "+appletJmolState.spt,
+									src : null,
+									use : "HTML5 noWebGL noImage",
+									width : '400'
+								};
+			
+								scribmol = Jmol.getApplet("scribmol", Info);
+								
+								/*jmolInitialize("libs/jmol");
+								jmolSetCallback("UseCommandThread","true"); //needed for minimize
+								jmolSetAppletColor("#444444");
+								jmolApplet(400,cmd+"set antialiasdisplay true; set bondpicking true; set debugscript on; set messagecallback \"messages\"; set pickcallback \"messagePick\"; load data \"model\"" + ch4MolFile + " \"model\" ; "+appletJmolState.spt);*/
+							</script>
+							
+						</td>
+					</tr>
+					<tr>
+						<td align="center">
+							<span id="formule">
+								<input type="checkbox" name="formule" value="1" id="bouton_dvlp"/>
+									<label for"bouton_dvlp">Formule topologique</label>
+								<!--<input type="radio" name="formule" value="0" id="bouton_topo" />
+									<label for"bouton_topo">Formule topologique</label> -->
+							</span>	
+						</td>
+						<td align="center">	
+							<button onClick="optimise()">
+								<img src="img/measure.png"/>
+								Optimiser... 
+							</button>
+							
+						</td>
+					</tr>
+				</table>
+				
+			</div>
+
+<div id="instructions">
+	
+</div>
+<div id="progress"></div>
+<br />
+	<button onClick="snapshot()">
+		<img src="img/snapshot.png" /> Mémoriser 
+	</button>
+	Rechercher : <input type="search" id="autocomplete"/>
+							<input type="submit" id="cactus" value="www"/>
+			<div id="results">
+				<div style="visibility: hidden; position: absolute; left: -400px">
+				<script>
+					
+					var myCanvas = new ChemDoodle.ViewerCanvas("snapshot", 150, 150);
+  					myCanvas.emptyMessage = 'No Data Loaded!';
+  					  //the width of the bonds should be .6 pixels
+					  //myCanvas.specs.bonds_width_2D = .6;
+					  //the spacing between higher order bond lines should be 18% of the length of the bond
+					  myCanvas.specs.bonds_saturationWidth_2D = .18;
+					  //the hashed wedge spacing should be 2.5 pixels
+					  //myCanvas.specs.bonds_hashSpacing_2D = 2.5;
+					  //the atom label font size should be 10
+					  //myCanvas.specs.atoms_font_size_2D = 10;
+					  //we define a cascade of acceptable font families
+					  //if Helvetica is not found, Arial will be used
+					  myCanvas.specs.atoms_font_families_2D = ["Helvetica", "Arial", "sans-serif"];
+					  //display carbons labels if they are terminal
+					  myCanvas.specs.atoms_displayTerminalCarbonLabels_2D = true;
+					  //add some color by using JMol colors for elements
+					  myCanvas.specs.atoms_useJMOLColors = true;
+					  
+					//myCanvas.repaint();
+				</script>
+				</div>
+			</div>
+			<!--<table>
+				<tr>
+					<td><textarea id="doodle_content" rows=20 cols=40></textarea></td>
+					<td><textarea id="jmol_content" rows=20 cols=40></textarea></td>
+				</tr>
+				<tr>
+					<td>
+						<button onClick="document.getElementById('doodle_content').value=writeMol.write(sketcher.getMolecule())">
+							Depuis<br/>Doodle 
+						</button>
+						<button onClick="sketcher.loadMolecule(writeMol.read(document.getElementById('doodle_content').value))">
+							Vers<br/>Doodle 
+						</button>
+						<button onClick="document.getElementById('doodle_content').value=jmolMol()">
+							Depuis<br/>Jmol 
+						</button>
+						<button onClick="jmolLoadInlineScript(document.getElementById('doodle_content').value, appletJmolState.spt )">
+							Vers<br/>Jmol 
+						</button>
+						<button onClick="jmolScript('load DATA \"model\"\n' + document.getElementById('doodle_content').value + ' \"model\" filter \"2D\"; '+ appletJmolState.spt )">
+							Vers<br/>Jmol 2
+						</button>
+
+					</td>
+					<td>
+						<button onClick="document.getElementById('jmol_content').value=writeMol.write(sketcher.getMolecule())">
+							Depuis<br/>Doodle 
+						</button>
+						<button onClick="sketcher.loadMolecule(writeMol.read(document.getElementById('jmol_content').value))">
+							Vers<br/>Doodle 
+						</button>
+						<button onClick="document.getElementById('jmol_content').value=jmolMol()">
+							Depuis<br/>Jmol 
+						</button>
+						<button onClick="jmolLoadInlineScript(document.getElementById('jmol_content').value,jmolIniScript)">
+							Vers<br/>Jmol 
+						</button>
+					</td>
+				</tr>
+			</table> -->
+			<footer>
+				<p>
+					<a href="http://web.chemdoodle.com" title="Open Source HTML5 Chemistry - ChemDoodle Web Components"><img src="http://web.chemdoodle.com/resources/images/badges/badge120x60.png" /></a>
+				</p>
+			</footer>
+		</div>
+	</body>
+</html>
