@@ -192,7 +192,7 @@
 				}
 				var smile = txt;//encodeURIComponent(txt);//.replace(/\//g,""));
 				//alert(smile);
-				jQuery.get("https://cactus.nci.nih.gov/chemical/structure/" + smile + "/sdf?get3d=true", {
+				jQuery.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/" + smile + "/SDF?record_type=3d", {
             },function(data){
 					if (data !== "") {
 						var spt = "load DATA \"model\"\n" + data + "END \"model\" ";
@@ -203,7 +203,7 @@
 					
 					
 				})
-				jQuery.get("https://cactus.nci.nih.gov/chemical/structure/" + smile + "/file?format=mol", {
+				jQuery.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/" + smile + "/SDF", {
             },function(data){
 					if (data!="") {
 						var d = removeH(data)
