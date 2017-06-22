@@ -192,18 +192,25 @@
 				}
 				var smile = txt;//encodeURIComponent(txt);//.replace(/\//g,""));
 				//alert(smile);
-				jQuery.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/" + smile + "/SDF?record_type=3d", {
-            },function(data){
-					if (data !== "") {
-						var spt = "load DATA \"model\"\n" + data + "END \"model\" ";
-						spt += "; " + appletJmolState.spt;
-						if (!is_smile) spt += "; set echo bottom left; font echo 20 sansserif bol; color echo white; echo "+txt;
-						Jmol.script(scribmol ,spt);
-					} else alert("Aucun modèle correspondant à votre recherche n'a été retrouvé")
-					
-					
-				})
-				jQuery.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/" + smile + "/SDF", {
+				jQuery.get( (is_smile) ?
+					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/" + smile + "/SDF?record_type=3d"
+					:
+					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/" + smile + "/SDF?record_type=3d", 
+					{
+					},
+					function(data){
+						if (data !== "") {
+							var spt = "load DATA \"model\"\n" + data + "END \"model\" ";
+							spt += "; " + appletJmolState.spt;
+							if (!is_smile) spt += "; set echo bottom left; font echo 20 sansserif bol; color echo white; echo "+txt;
+							Jmol.script(scribmol ,spt);
+						} else alert("Aucun modèle correspondant à votre recherche n'a été retrouvé")									
+					}
+				)
+				jQuery.get( (is_smile) ?
+					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/" + smile + "/SDF"
+					:
+					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/" + smile + "/SDF", {
             },function(data){
 					if (data!="") {
 						var d = removeH(data)
