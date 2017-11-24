@@ -84,7 +84,7 @@
 				
 			}
 			function messages(mol,txt,nb) {
-				console.log(txt);
+				// console.log(txt);
 				if(txt.indexOf("assign ")!=-1) {actualise()}
 				else if(txt.indexOf("#EOF")!=-1) {jmol2Doodle2()}
 			}
@@ -190,13 +190,15 @@
 					txt =  Jmol.evaluate(scribmol , "{*}.find('smiles')" );
 					is_smile = true;
 				}
-				var smile = txt;//encodeURIComponent(txt);//.replace(/\//g,""));
+				var smile = txt; //encodeURIComponent(txt.replace(/\//g,""));
 				//alert(smile);
-				jQuery.get( (is_smile) ?
-					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/" + smile + "/SDF?record_type=3d"
+				jQuery.post( (is_smile) ?
+					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/SDF"
 					:
 					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/" + smile + "/SDF?record_type=3d", 
 					{
+						smiles: smile,
+						record_type: '3d'
 					},
 					function(data){
 						if (data !== "") {
@@ -204,20 +206,35 @@
 							spt += "; " + appletJmolState.spt;
 							if (!is_smile) spt += "; set echo bottom left; font echo 20 sansserif bol; color echo white; echo "+txt;
 							Jmol.script(scribmol ,spt);
+							if (is_smile) {
+								jQuery.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/property/IUPACName/JSON", 
+									{
+										smiles: smile,
+										property: 'IUPACName'
+									},
+									function(response){
+										if (response.PropertyTable.Properties[0].IUPACName) {
+											var spt = "set echo bottom left; font echo 20 sansserif bol; color echo white; echo " + response.PropertyTable.Properties[0].IUPACName;
+											Jmol.script(scribmol ,spt);
+										}
+									}
+								)
+							}
 						} else alert("Aucun modèle correspondant à votre recherche n'a été retrouvé")									
 					}
 				)
-				jQuery.get( (is_smile) ?
-					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/" + smile + "/SDF"
+				jQuery.post( (is_smile) ?
+					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/SDF"
 					:
 					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/" + smile + "/SDF", {
-            },function(data){
-					if (data!="") {
-						var d = removeH(data)
-						sketcher.loadMolecule(writeMol.read(d));
+						smiles: smile
+            		},function(data){
+						if (data!="") {
+							var d = removeH(data)
+							sketcher.loadMolecule(writeMol.read(d));
+						}	
 					}
-					
-				})
+				)
 			}
 			function charge(){
 				var requete = prompt("Molécule à rechercher","Aspirine")
@@ -377,6 +394,114 @@
 			button img {
 				vertical-align: text-bottom;
 			}
+			td {
+				border-radius: 6px;
+				padding: 1em;
+				box-shadow: 0 2px 4px 0 rgba(0,0,0,.12), 0 0 6px 0 rgba(0,0,0,.04);
+			}
+			table {
+				border-collapse: separate;
+				border-spacing: 1em;
+				margin: 0 auto;
+			}
+			#model {
+				background: #444;
+			}
+			#sketch {
+				background: #fff;
+				position: relative;
+			}
+			#sketch .ui-button {
+				opacity: 0.6;
+				transition: 0.4s;
+			}
+			#sketch:hover .ui-button {
+				opacity: 1;
+			}
+			#model .ui-button {
+				opacity: 0.7;
+				transition: 0.4s;
+			}
+			#model:hover .ui-button {
+				opacity: 1;
+			}
+			
+			canvas.ChemDoodleWebComponent {
+				border: none;
+			}
+			#formule {
+				position:absolute;
+				bottom: 0;
+				left:0;
+				right:0;
+				width: 100%;
+				z-index: 3;
+				text-align: center;
+				margin-bottom: 0.5em;
+				color: #666;
+				font-size: 0.8em;
+			}
+			header {
+				text-align: center;
+				color: #333355;
+			}
+			#command, #search {
+				text-align: center;
+			}
+			#command button, #cactus {
+				border-radius: 4px;
+				border: none;
+				font-size: 0.9em;
+				color: #666;
+				box-shadow: 0 0px 4px 0 rgba(0,0,0,.12), 0 0 10px 0 rgba(0,0,0,.04);
+				align-items: center;
+    			display: inline-flex;
+				margin: 0.5em;
+    			padding: 0.5em 1em;
+				transition: 0.3s;
+			}
+			#command button img {
+				margin-right: 1em;
+			}
+			#command button:hover, #cactus:hover {
+				background: #eef0f6;
+				color: #444;
+			}
+			#autocomplete {
+				border: none;
+				border-bottom: solid 1px #bbb;
+				background: transparent;
+				color: #335c86;
+				font-size: 1em;
+				width: 28em;
+			}
+			input#autocomplete::placeholder {
+				color: #aaa;
+			}
+			#search {
+				margin-top: 0.8em;
+				color: #666;
+				font-size: 0.9em;
+			}
+			#cactus {
+				font-size: 1em;
+			}
+			footer {
+				margin: 3em auto;
+				width: 900px;
+				font-size: 0.9em;
+				color: #666;
+			}
+			a {
+				text-decoration: none;
+				color:#335c86;
+			}
+			a:hover {
+				color:#4479ad;
+			}
+			footer img {
+				height: 60px;
+			}
 		</style>
 	</head>
 
@@ -392,7 +517,7 @@
 			<div>
 				<table>
 					<tr>
-						<td valign="bottom">
+						<td valign="bottom" id="sketch">
 							<script type=text/javascript>
 								// changes the default JMol color of hydrogen to black so it appears on white backgrounds
 								ChemDoodle.ELEMENT['H'].jmolColor = 'black';
@@ -416,8 +541,14 @@
 								sketcher.repaint();
 								writeMol = new ChemDoodle.io.MOLInterpreter();
 							</script>
+							<div id="formule">
+								<input type="checkbox" name="formule" value="1" id="bouton_dvlp"/>
+									<label for"bouton_dvlp">Formule topologique</label>
+								<!--<input type="radio" name="formule" value="0" id="bouton_topo" />
+									<label for"bouton_topo">Formule topologique</label> -->
+							</div>
 						</td>
-						<td valign="bottom" >
+						<td valign="bottom" id="model">
 							<div class="barre_boutons"><span id="atomes">
 								<input type="radio" onclick="appletJmolState.appendAtom('c')" name="assign" id="bouton_c" checked="checked"/>
 									<label for="bouton_c"><img src="img/c.png" title="Remplacer l'élément par un carbone"/></label>
@@ -499,38 +630,31 @@
 							
 						</td>
 					</tr>
-					<tr>
-						<td align="center">
-							<span id="formule">
-								<input type="checkbox" name="formule" value="1" id="bouton_dvlp"/>
-									<label for"bouton_dvlp">Formule topologique</label>
-								<!--<input type="radio" name="formule" value="0" id="bouton_topo" />
-									<label for"bouton_topo">Formule topologique</label> -->
-							</span>	
-						</td>
-						<td align="center">	
-							<button onClick="optimise()">
-								<img src="img/measure.png"/>
-								Optimiser... 
-							</button>
+					
 							
-						</td>
-					</tr>
+							
 				</table>
 				
 			</div>
-
-<div id="instructions">
-	
-</div>
+			<div id="command">
+				<button onClick="optimise()">
+					<img src="img/measure.png"/>
+					Optimiser les structures à partir des modèles de PubChem... 
+				</button>
+			</div>
+			<div id="search">
+					Rechercher sur PubChem 
+					<input type="text" id="autocomplete" placeholder="Nom d'une molécule. Ex: aspirine"/>
+					<button id="cactus">Rechercher</button>
+			</div>
 <div id="progress"></div>
 <br />
-	<button onClick="snapshot()">
+	<!--<button onClick="snapshot()">
 		<img src="img/snapshot.png" /> Mémoriser 
-	</button>
-	Rechercher : <input type="search" id="autocomplete"/>
-							<input type="submit" id="cactus" value="www"/>
+	</button>-->
+	
 			<div id="results">
+				<!--
 				<div style="visibility: hidden; position: absolute; left: -400px">
 				<script>
 					
@@ -555,6 +679,7 @@
 					//myCanvas.repaint();
 				</script>
 				</div>
+			-->
 			</div>
 			<!--<table>
 				<tr>
@@ -597,8 +722,16 @@
 				</tr>
 			</table> -->
 			<footer>
+				<h3>Références</h3>
 				<p>
-					<a href="http://web.chemdoodle.com" title="Open Source HTML5 Chemistry - ChemDoodle Web Components"><img src="http://web.chemdoodle.com/resources/images/badges/badge120x60.png" /></a>
+					<a href="http://web.chemdoodle.com" title="Open Source HTML5 Chemistry - ChemDoodle Web Components" target="_blank"><img src="http://web.chemdoodle.com/resources/images/badges/badge120x60.png" /></a>
+					<a href="http://jmol.org" title="Jmol" target="_blank"><img src="http://wiki.jmol.org/images/b/ba/JSmol_fait-avec_13.png" /></a>
+				</p>
+				<p>
+					Les données sont issues de la banque de données <b>PubChem</b> 
+					(Kim S, Thiessen PA, Bolton EE, Chen J, Fu G, Gindulyte A, Han L, He J, He S, Shoemaker BA, Wang J, Yu B, Zhang J, Bryant SH. 
+					PubChem Substance and Compound databases. Nucleic Acids Res. 2016 Jan 4; 44(D1):D1202-13. Epub 2015 Sep 22 
+					[PubMed <a href="https://www.ncbi.nlm.nih.gov/pubmed/26400175/" target="_blank">PMID: 26400175</a>] doi: <a href="https://doi.org/10.1093/nar/gkv951" target="_blank">10.1093/nar/gkv951</a>.)
 				</p>
 			</footer>
 		</div>
