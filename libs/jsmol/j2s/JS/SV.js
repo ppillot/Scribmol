@@ -530,6 +530,7 @@ sb.append (tabs);
 var key = keys[i];
 sb.append (JU.PT.esc (key)).append ("  :");
 var sb2 =  new JU.SB ();
+if (!(Clazz.instanceOf (ht.get (key), JS.SV))) ht.put (key, JS.SV.getVariable (ht.get (key)));
 var v = ht.get (key);
 isEscaped = JS.SV.isRawType (v.tok);
 JS.SV.sValueArray (sb2, v, path, tabs, isEscaped, false, addValues, maxLevels, skipEmpty);

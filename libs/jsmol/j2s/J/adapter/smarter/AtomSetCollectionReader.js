@@ -22,6 +22,7 @@ this.line = null;
 this.prevline = null;
 this.next = null;
 this.ptLine = 0;
+this.latticeType = null;
 this.latticeCells = null;
 this.fillRange = null;
 this.doProcessLines = false;
@@ -58,6 +59,8 @@ this.ptSupercell = null;
 this.mustFinalizeModelSet = false;
 this.forcePacked = false;
 this.packingError = 0.02;
+this.rotateHexCell = false;
+this.isPrimitive = false;
 this.loadNote = null;
 this.doConvertToFractional = false;
 this.fileCoordinatesAreFractional = false;
@@ -342,9 +345,12 @@ this.fillRange = this.htParams.get ("fillRange");
 if (this.strSupercell != null) {
 if (!this.checkFilterKey ("NOPACK")) this.forcePacked = true;
 }o = this.htParams.get ("supercell");
-if (Clazz.instanceOf (o, String)) this.strSupercell = o;
- else this.ptSupercell = o;
-var ptFile = (this.htParams.containsKey ("ptFile") ? (this.htParams.get ("ptFile")).intValue () : -1);
+if (Clazz.instanceOf (o, JU.P3)) {
+var s = this.ptSupercell = o;
+this.strSupercell = (Clazz.floatToInt (s.x)) + "a," + (Clazz.floatToInt (s.y)) + "b," + (Clazz.floatToInt (s.z)) + "c";
+} else if (Clazz.instanceOf (o, String)) {
+this.strSupercell = o;
+}var ptFile = (this.htParams.containsKey ("ptFile") ? (this.htParams.get ("ptFile")).intValue () : -1);
 this.isTrajectory = this.htParams.containsKey ("isTrajectory");
 if (ptFile > 0 && this.htParams.containsKey ("firstLastSteps")) {
 var val = (this.htParams.get ("firstLastSteps")).get (ptFile - 1);
@@ -384,9 +390,9 @@ this.unitCellOffsetFractional = this.htParams.containsKey ("unitCellOffsetFracti
 var fParams = this.htParams.get ("unitcell");
 if (this.merging) this.setFractionalCoordinates (true);
 if (fParams.length == 9) {
-this.addPrimitiveLatticeVector (0, fParams, 0);
-this.addPrimitiveLatticeVector (1, fParams, 3);
-this.addPrimitiveLatticeVector (2, fParams, 6);
+this.addExplicitLatticeVector (0, fParams, 0);
+this.addExplicitLatticeVector (1, fParams, 3);
+this.addExplicitLatticeVector (2, fParams, 6);
 } else {
 this.setUnitCell (fParams[0], fParams[1], fParams[2], fParams[3], fParams[4], fParams[5]);
 }this.ignoreFileUnitCell = this.iHaveUnitCell;
@@ -517,7 +523,7 @@ if (beta != 0) this.unitCellParams[4] = beta;
 if (gamma != 0) this.unitCellParams[5] = gamma;
 this.iHaveUnitCell = this.checkUnitCell (6);
 }, "~N,~N,~N,~N,~N,~N");
-Clazz.defineMethod (c$, "addPrimitiveLatticeVector", 
+Clazz.defineMethod (c$, "addExplicitLatticeVector", 
 function (i, xyz, i0) {
 if (this.ignoreFileUnitCell) return;
 if (i == 0) for (var j = 0; j < 6; j++) this.unitCellParams[j] = 0;
@@ -549,6 +555,7 @@ if (this.symmetry == null) {
 this.getNewSymmetry ().setUnitCell (this.unitCellParams, false);
 this.checkUnitCellOffset ();
 }if (this.symmetry == null) this.iHaveUnitCell = false;
+ else this.symmetry.setSpaceGroupName (this.sgName);
 return this.symmetry;
 });
 Clazz.defineMethod (c$, "checkUnitCellOffset", 
@@ -768,7 +775,6 @@ if (this.moreUnitCellInfo != null) {
 this.asc.setCurrentModelInfo ("moreUnitCellInfo", this.moreUnitCellInfo);
 this.moreUnitCellInfo = null;
 }this.finalizeSubclassSymmetry (sym != null);
-if (sym != null && this.ptSupercell != null) this.asc.getXSymmetry ().finalizeUnitCell (this.ptSupercell);
 this.initializeSymmetry ();
 return sym;
 });

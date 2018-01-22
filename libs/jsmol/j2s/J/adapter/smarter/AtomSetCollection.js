@@ -530,7 +530,8 @@ Clazz.defineMethod (c$, "setAtomSetCollectionPartialCharges",
 function (auxKey) {
 if (!this.atomSetInfo.containsKey (auxKey)) return false;
 var atomData = this.atomSetInfo.get (auxKey);
-for (var i = atomData.size (); --i >= 0; ) this.atoms[i].partialCharge = atomData.get (i).floatValue ();
+var n = atomData.size ();
+for (var i = this.ac; --i >= 0; ) this.atoms[i].partialCharge = atomData.get (i % n).floatValue ();
 
 JU.Logger.info ("Setting partial charges type " + auxKey);
 return true;
@@ -754,6 +755,7 @@ if (!this.isTrajectory || !a.isTrajectory || this.vibrationSteps != null) return
 for (var i = 0; i < a.trajectoryStepCount; i++) this.trajectorySteps.add (this.trajectoryStepCount++, a.trajectorySteps.get (i));
 
 this.setInfo ("trajectorySteps", this.trajectorySteps);
+this.setInfo ("ignoreUnitCell", a.atomSetInfo.get ("ignoreUnitCell"));
 }, "J.adapter.smarter.AtomSetCollection");
 Clazz.defineStatics (c$,
 "globalBooleans",  Clazz.newArray (-1, ["someModelsHaveFractionalCoordinates", "someModelsHaveSymmetry", "someModelsHaveUnitcells", "someModelsHaveCONECT", "isPDB", "someModelsHaveDomains", "someModelsHaveValidations"]),

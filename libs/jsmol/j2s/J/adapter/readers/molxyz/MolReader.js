@@ -7,6 +7,8 @@ this.dimension = null;
 this.allow2D = true;
 this.iatom0 = 0;
 this.vr = null;
+this.atomCount = 0;
+this.atomData = null;
 Clazz.instantialize (this, arguments);
 }, J.adapter.readers.molxyz, "MolReader", J.adapter.smarter.AtomSetCollectionReader);
 Clazz.overrideMethod (c$, "initializeReader", 
@@ -23,8 +25,9 @@ if (this.line == null) {
 JU.Logger.warn ("$HDR not found in MDL RG file");
 this.continuing = false;
 return false;
-}} else if (this.line.equals ("M  END")) return true;
-if (this.doGetModel (++this.modelNumber, null)) {
+}} else if (this.line.equals ("M  END")) {
+return true;
+}if (this.doGetModel (++this.modelNumber, null)) {
 this.iatom0 = this.asc.ac;
 this.processMolSdHeader ();
 this.processCtab (isMDL);
@@ -83,6 +86,7 @@ this.readAtomsAndBonds (this.parseIntRange (this.line, 0, 3), this.parseIntRange
 }, "~B");
 Clazz.defineMethod (c$, "readAtomsAndBonds", 
  function (ac, bc) {
+this.atomCount = ac;
 for (var i = 0; i < ac; ++i) {
 this.rd ();
 var len = this.line.length;
@@ -100,26 +104,24 @@ if (len < 34) {
 elementSymbol = this.line.substring (31).trim ();
 } else {
 elementSymbol = this.line.substring (31, 34).trim ();
-if (len >= 39) {
+if (elementSymbol.equals ("H1")) {
+elementSymbol = "H";
+isotope = 1;
+}if (len >= 39) {
 var code = this.parseIntRange (this.line, 36, 39);
 if (code >= 1 && code <= 7) charge = 4 - code;
 code = this.parseIntRange (this.line, 34, 36);
 if (code != 0 && code >= -3 && code <= 4) {
-isotope = J.api.JmolAdapter.getNaturalIsotope (J.api.JmolAdapter.getElementNumber (elementSymbol));
-switch (isotope) {
-case 0:
-break;
-case 1:
-isotope = -code;
-break;
-default:
-isotope += code;
-}
+isotope = J.api.JmolAdapter.getNaturalIsotope (J.api.JmolAdapter.getElementNumber (elementSymbol)) + code;
 }if (iAtom == -2147483648 && this.haveAtomSerials) iAtom = i + 1;
 }}this.addMolAtom (iAtom, isotope, elementSymbol, charge, x, y, z);
 }
-for (var i = 0; i < bc; ++i) {
 this.rd ();
+if (this.line.startsWith ("V  ")) {
+this.readAtomValues ();
+}if (bc == 0) this.asc.setNoAutoBond ();
+for (var i = 0; i < bc; ++i) {
+if (i > 0) this.rd ();
 var iAtom1;
 var iAtom2;
 var stereo = 0;
@@ -142,8 +144,26 @@ this.readIsotopes ();
 continue;
 }this.rd ();
 }
-if (!molData.isEmpty ()) this.asc.setModelInfoForSet ("molData", molData, this.asc.iSet);
+if (this.atomData != null) {
+var atomValueName = molData.get ("atom_value_name");
+molData.put (atomValueName == null ? "atom_values" : atomValueName.toString (), this.atomData);
+}if (!molData.isEmpty ()) this.asc.setModelInfoForSet ("molData", molData, this.asc.iSet);
 }, "~N,~N");
+Clazz.defineMethod (c$, "readAtomValues", 
+ function () {
+this.atomData =  new Array (this.atomCount);
+for (var i = this.atomData.length; --i >= 0; ) this.atomData[i] = "";
+
+while (this.line.indexOf ("V  ") == 0) {
+var iAtom = this.parseIntAt (this.line, 3);
+if (iAtom < 1 || iAtom > this.atomCount) {
+JU.Logger.error ("V  nnn does not evalute to a valid atom number: " + iAtom);
+return;
+}var s = this.line.substring (6).trim ();
+this.atomData[iAtom - 1] = s;
+this.rd ();
+}
+});
 Clazz.defineMethod (c$, "readIsotopes", 
  function () {
 var n = this.parseIntAt (this.line, 6);
@@ -154,7 +174,7 @@ var ipt = this.parseIntAt (this.line, pt);
 var atom = this.asc.atoms[ipt + i0 - 1];
 var iso = this.parseIntAt (this.line, pt + 4);
 pt += 8;
-atom.elementSymbol = "" + iso + atom.elementSymbol;
+atom.elementSymbol = "" + iso + JU.PT.replaceAllCharacters (atom.elementSymbol, "0123456789", "");
 }
 } catch (e) {
 }
@@ -171,6 +191,7 @@ while (this.rd () != null && !this.line.equals ("$$$$") && this.line.length > 0)
 data = JU.PT.trim (data, "\n");
 JU.Logger.info (dataName + ":" + JU.PT.esc (data));
 molData.put (dataName, data);
+var ndata = 0;
 if (dataName.toUpperCase ().contains ("_PARTIAL_CHARGES")) {
 try {
 fdata = JU.PT.parseFloatArray (data);
@@ -181,27 +202,46 @@ for (var i = Clazz.floatToInt (fdata[pt++]); --i >= 0; ) {
 var atomIndex = Clazz.floatToInt (fdata[pt++]) + this.iatom0 - 1;
 var partialCharge = fdata[pt++];
 atoms[atomIndex].partialCharge = partialCharge;
+ndata++;
 }
 } catch (e) {
-if (Clazz.exceptionOf (e, Exception)) {
 for (var i = this.asc.getLastAtomSetAtomIndex (), n = this.asc.ac; i < n; i++) atoms[i].partialCharge = 0;
 
-return;
-} else {
-throw e;
+JU.Logger.error ("error reading " + dataName + " field -- partial charges cleared");
 }
+JU.Logger.info (ndata + " partial charges read");
+} else if (dataName.toUpperCase ().contains ("ATOM_NAMES")) {
+ndata = 0;
+try {
+var tokens = JU.PT.getTokens (data);
+var pt = 0;
+for (var i = this.parseIntStr (tokens[pt++]); --i >= 0; ) {
+var iatom;
+while ((iatom = this.parseIntStr (tokens[pt++])) == -2147483648) {
 }
+var atomIndex = iatom + this.iatom0 - 1;
+var name = tokens[pt++];
+if (!name.equals (".")) atoms[atomIndex].atomName = name;
+ndata++;
+}
+} catch (e) {
+JU.Logger.error ("error reading " + dataName + " field");
+}
+JU.Logger.info (ndata + " atom names read");
 }}, "java.util.Map");
 Clazz.defineMethod (c$, "addMolAtom", 
 function (iAtom, isotope, elementSymbol, charge, x, y, z) {
 switch (isotope) {
 case 0:
 break;
-case -1:
-elementSymbol = "D";
+case 1:
+elementSymbol = "1H";
 break;
-case -2:
-elementSymbol = "T";
+case 2:
+elementSymbol = "2H";
+break;
+case 3:
+elementSymbol = "3H";
 break;
 default:
 elementSymbol = isotope + elementSymbol;

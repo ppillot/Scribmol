@@ -52,6 +52,7 @@ this.pressAction = 0;
 this.dragAction = 0;
 this.clickAction = 0;
 this.measurementQueued = null;
+this.zoomTrigger = false;
 this.selectionWorking = false;
 Clazz.instantialize (this, arguments);
 }, JV, "ActionManager", null, javajs.api.EventManager);
@@ -74,7 +75,12 @@ this.dragGesture =  new JV.Gesture (20, vwr);
 }, "JV.Viewer,~S");
 Clazz.defineMethod (c$, "checkHover", 
 function () {
-if (!this.vwr.getInMotion (true) && !this.vwr.tm.spinOn && !this.vwr.tm.navOn && !this.vwr.checkObjectHovered (this.current.x, this.current.y)) {
+if (this.zoomTrigger) {
+this.zoomTrigger = false;
+if (this.vwr.currentCursor == 8) this.vwr.setCursor (0);
+this.vwr.setInMotion (false);
+return;
+}if (!this.vwr.getInMotion (true) && !this.vwr.tm.spinOn && !this.vwr.tm.navOn && !this.vwr.checkObjectHovered (this.current.x, this.current.y)) {
 var atomIndex = this.vwr.findNearestAtomIndex (this.current.x, this.current.y);
 if (atomIndex < 0) return;
 var isLabel = (this.apm == 2 && this.bnd (JV.binding.Binding.getMouseAction (this.clickedCount, this.moved.modifiers, 1), [10]));
@@ -1002,7 +1008,10 @@ function (dz, x, y) {
 if (dz == 0) return;
 this.setMotion (8, true);
 this.vwr.zoomByFactor (Math.pow (this.mouseWheelFactor, dz), x, y);
-this.vwr.setInMotion (false);
+this.moved.setCurrent (this.current, 0);
+this.vwr.setInMotion (true);
+this.zoomTrigger = true;
+this.startHoverWatcher (true);
 }, "~N,~N,~N");
 Clazz.defineMethod (c$, "runScript", 
  function (script) {
@@ -1088,11 +1097,13 @@ return;
 case 2:
 if (this.bnd (this.clickAction, [19])) {
 this.runScript ("set labeltoggle {atomindex=" + atomIndex + "}");
-this.vwr.setStatusAtomPicked (atomIndex, null, null);
+this.vwr.setStatusAtomPicked (atomIndex, "label picked", null);
 }return;
 case 31:
-if (this.bnd (this.clickAction, [0])) this.vwr.invertRingAt (atomIndex, true);
-return;
+if (this.bnd (this.clickAction, [0])) {
+this.vwr.invertRingAt (atomIndex, true);
+this.vwr.setStatusAtomPicked (atomIndex, "invert stereo", null);
+}return;
 case 7:
 if (this.bnd (this.clickAction, [4])) {
 bs = JU.BSUtil.newAndSetBit (atomIndex);
@@ -1213,6 +1224,7 @@ s += "(" + item + ")";
 try {
 var bs = this.vwr.getAtomBitSetEval (null, s);
 this.vwr.select (bs, false, 0, false);
+this.vwr.setStatusAtomPicked (-1, "selected: " + JU.Escape.eBS (bs), null);
 this.vwr.refresh (3, "selections set");
 } catch (e) {
 if (Clazz.exceptionOf (e, Exception)) {

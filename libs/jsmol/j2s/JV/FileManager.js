@@ -237,6 +237,7 @@ var ret = null;
 var errorMessage = null;
 var cacheBytes = (allowCached && outputBytes == null ? cacheBytes = this.getPngjOrDroppedBytes (fullName, name) : null);
 try {
+if (allowCached && name.indexOf (".png") >= 0 && this.pngjCache == null && !this.vwr.getBoolean (603979960)) this.pngjCache =  new java.util.Hashtable ();
 if (cacheBytes == null) {
 var isPngjBinaryPost = (name.indexOf ("?POST?_PNGJBIN_") >= 0);
 var isPngjPost = (isPngjBinaryPost || name.indexOf ("?POST?_PNGJ_") >= 0);
@@ -256,7 +257,6 @@ if (isURL && (iurl = name.indexOf ("?POST?")) >= 0) {
 post = name.substring (iurl + 6);
 name = name.substring (0, iurl);
 }var isApplet = (this.appletDocumentBaseURL != null);
-if (allowCached && name.indexOf (".png") >= 0 && this.pngjCache == null && !this.vwr.getBoolean (603979960)) this.pngjCache =  new java.util.Hashtable ();
 if (isApplet || isURL) {
 if (isApplet && isURL && this.appletProxy != null) name = this.appletProxy + "?url=" + this.urlEncode (name);
 var url = (isApplet ?  new java.net.URL (this.appletDocumentBaseURL, name, null) :  new java.net.URL (Clazz.castNullAs ("java.net.URL"), name, null));
@@ -383,13 +383,14 @@ try {
 if (Clazz.instanceOf (t, String) || Clazz.instanceOf (t, java.io.BufferedReader)) return t;
 var bis = t;
 if (JU.Rdr.isGzipS (bis)) bis = JU.Rdr.getUnzippedInputStream (this.vwr.getJzt (), bis);
+ else if (JU.Rdr.isBZip2S (bis)) bis = JU.Rdr.getUnzippedInputStreamBZip2 (this.vwr.getJzt (), bis);
 if (forceInputStream && subFileList == null) return bis;
 if (JU.Rdr.isCompoundDocumentS (bis)) {
 var doc = J.api.Interface.getInterface ("JU.CompoundDocument", this.vwr, "file");
 doc.setDocStream (this.vwr.getJzt (), bis);
 var s = doc.getAllDataFiles ("Molecule", "Input").toString ();
 return (forceInputStream ? JU.Rdr.getBIS (s.getBytes ()) : JU.Rdr.getBR (s));
-}if (JU.Rdr.isPickleS (bis) || JU.Rdr.isMessagePackS (bis)) return bis;
+}if (JU.Rdr.isMessagePackS (bis) || JU.Rdr.isPickleS (bis)) return bis;
 bis = JU.Rdr.getPngZipStream (bis, true);
 if (JU.Rdr.isZipS (bis)) {
 if (allowZipStream) return this.vwr.getJzt ().newZipInputStream (bis);
@@ -437,12 +438,12 @@ out.write (bytes, 0, -1);
 return (bytes).length + " bytes";
 }, "~S,JU.OC");
 Clazz.defineMethod (c$, "getFileAsMap", 
-function (name) {
+function (name, type) {
 var bdata =  new java.util.Hashtable ();
 var t;
 if (name == null) {
 var errMsg =  new Array (1);
-var bytes = this.vwr.getImageAsBytes ("PNGJ", -1, -1, -1, errMsg);
+var bytes = this.vwr.getImageAsBytes (type, -1, -1, -1, errMsg);
 if (errMsg[0] != null) {
 bdata.put ("_ERROR_", errMsg[0]);
 return bdata;
@@ -467,7 +468,7 @@ throw e;
 }
 }
 return bdata;
-}, "~S");
+}, "~S,~S");
 Clazz.defineMethod (c$, "getFileDataAsString", 
 function (data, nBytesMax, doSpecialLoad, allowBinary, checkProtected) {
 data[1] = "";
@@ -584,7 +585,7 @@ names[1] = JV.FileManager.stripPath (names[0]);
 var name0 = names[0];
 names[0] = this.pathForAllFiles + names[1];
 JU.Logger.info ("FileManager substituting " + name0 + " --> " + names[0]);
-}if (isFullLoad && (file != null || JU.OC.urlTypeIndex (names[0]) == 4)) {
+}if (isFullLoad && (file != null || JU.OC.urlTypeIndex (names[0]) == 5)) {
 var path = (file == null ? JU.PT.trim (names[0].substring (5), "/") : names[0]);
 var pt = path.length - names[1].length - 1;
 if (pt > 0) {
@@ -700,12 +701,31 @@ return JU.PT.isOneOf (fname.toLowerCase ().substring (fname.lastIndexOf (".") + 
 }, "~S");
 c$.isSurfaceType = Clazz.defineMethod (c$, "isSurfaceType", 
 function (fname) {
-return JU.PT.isOneOf (fname.toLowerCase ().substring (fname.lastIndexOf (".") + 1), ";jvxl;kin;o;msms;map;pmesh;mrc;efvet;cube;obj;dssr;");
+return JU.PT.isOneOf (fname.toLowerCase ().substring (fname.lastIndexOf (".") + 1), ";jvxl;kin;o;msms;map;pmesh;mrc;efvet;cube;obj;dssr;bcif;");
 }, "~S");
 c$.determineSurfaceFileType = Clazz.defineMethod (c$, "determineSurfaceFileType", 
 function (bufferedReader) {
 var line = null;
-var br = null;
+if (Clazz.instanceOf (bufferedReader, JU.Rdr.StreamReader)) {
+var is = (bufferedReader).getStream ();
+if (is.markSupported ()) {
+try {
+is.mark (300);
+var buf =  Clazz.newByteArray (300, 0);
+is.read (buf, 0, 300);
+is.reset ();
+if ((buf[0] & 0xFF) == 0x83) return "BCifDensity";
+if (buf[0] == 80 && buf[1] == 77 && buf[2] == 1 && buf[3] == 0) return "Pmesh";
+if (buf[208] == 77 && buf[209] == 65 && buf[210] == 80) return "Mrc";
+if (buf[0] == 20 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0) return "DelPhi";
+if (buf[36] == 0 && buf[37] == 100) return "Dsn6";
+} catch (e) {
+if (Clazz.exceptionOf (e, java.io.IOException)) {
+} else {
+throw e;
+}
+}
+}}var br = null;
 try {
 br =  new JU.LimitedLineReader (bufferedReader, 16000);
 line = br.getHeader (0);
@@ -716,7 +736,15 @@ throw e;
 }
 }
 if (br == null || line == null || line.length == 0) return null;
-switch (line.charAt (0)) {
+var pt0 = line.indexOf ('\0');
+if (pt0 >= 0) {
+if (line.charCodeAt (0) == 0x83) return "BCifDensity";
+if (line.indexOf ("PM\u0001\u0000") == 0) return "Pmesh";
+if (line.indexOf ("MAP ") == 208) return "Mrc";
+if (line.indexOf ("\u0014\u0000\u0000\u0000") == 0) return "DelPhi";
+if (line.length > 37 && (line.charCodeAt (36) == 0 && line.charCodeAt (37) == 100 || line.charCodeAt (36) == 0 && line.charCodeAt (37) == 100)) {
+return "Dsn6";
+}}switch (line.charAt (0)) {
 case '@':
 if (line.indexOf ("@text") == 0) return "Kinemage";
 break;
@@ -733,6 +761,7 @@ if (line.indexOf ("ZYX") >= 0) return "Xplor";
 break;
 }
 if (line.indexOf ("Here is your gzipped map") >= 0) return "UPPSALA" + line;
+if (line.startsWith ("data_SERVER")) return "CifDensity";
 if (line.startsWith ("4MESHC")) return "Pmesh4";
 if (line.indexOf ("! nspins") >= 0) return "CastepDensity";
 if (line.indexOf ("<jvxl") >= 0 && line.indexOf ("<?xml") >= 0) return "JvxlXml";
@@ -746,14 +775,7 @@ if (line.indexOf ("usemtl") >= 0) return "Obj";
 if (line.indexOf ("# object with") == 0) return "Nff";
 if (line.indexOf ("BEGIN_DATAGRID_3D") >= 0 || line.indexOf ("BEGIN_BANDGRID_3D") >= 0) return "Xsf";
 if (line.indexOf ("tiles in x, y") >= 0) return "Ras3D";
-var pt0 = line.indexOf ('\0');
-if (pt0 >= 0) {
-if (line.indexOf ("PM\u0001\u0000") == 0) return "Pmesh";
-if (line.indexOf ("MAP ") == 208) return "Mrc";
-if (line.indexOf ("\u0014\u0000\u0000\u0000") == 0) return "DelPhi";
-if (line.length > 37 && (line.charCodeAt (36) == 0 && line.charCodeAt (37) == 100 || line.charCodeAt (36) == 0 && line.charCodeAt (37) == 100)) {
-return "Dsn6";
-}}if (line.indexOf (" 0.00000e+00 0.00000e+00      0      0\n") >= 0) return "Uhbd";
+if (line.indexOf (" 0.00000e+00 0.00000e+00      0      0\n") >= 0) return "Uhbd";
 line = br.readLineWithNewline ();
 if (line.indexOf ("object 1 class gridpositions counts") == 0) return "Apbs";
 var tokens = JU.PT.getTokens (line);
@@ -925,7 +947,10 @@ return (pathName == null || this.pngjCache == null || pathName.indexOf (".png") 
 }, "~S");
 Clazz.overrideMethod (c$, "postByteArray", 
 function (fileName, bytes) {
-var ret = this.getBufferedInputStreamOrErrorMessageFromName (fileName, null, false, false, bytes, false, true);
+if (fileName.startsWith ("cache://")) {
+this.cachePut (fileName, bytes);
+return "OK " + bytes.length + "cached";
+}var ret = this.getBufferedInputStreamOrErrorMessageFromName (fileName, null, false, false, bytes, false, true);
 if (Clazz.instanceOf (ret, String)) return ret;
 try {
 ret = JU.Rdr.getStreamAsBytes (ret, null);

@@ -532,9 +532,9 @@ function (property) {
 if (property === "property_atomclass") return this.atomClass;
 return NaN;
 }, "~S");
-Clazz.overrideMethod (c$, "getNominalMass", 
+Clazz.overrideMethod (c$, "getMass", 
 function () {
-return this.getAtomicMass ();
+return this.atomicMass;
 });
 Clazz.overrideMethod (c$, "getCIPChirality", 
 function (doCalculate) {

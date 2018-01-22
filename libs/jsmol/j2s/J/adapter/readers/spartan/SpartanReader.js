@@ -6,7 +6,7 @@ function () {
 var cartesianHeader = "Cartesian Coordinates (Ang";
 if (this.isSpartanArchive (cartesianHeader)) {
 this.moData =  new java.util.Hashtable ();
-var spartanArchive =  new J.adapter.readers.spartan.SpartanArchive (this, "", null);
+var spartanArchive =  new J.adapter.readers.spartan.SpartanArchive (this, "", null, 0);
 var ac = spartanArchive.readArchive (this.line, true, 0, true);
 if (ac > 0) this.asc.setAtomSetName ("Spartan file");
 } else if (this.line.indexOf (cartesianHeader) >= 0) {

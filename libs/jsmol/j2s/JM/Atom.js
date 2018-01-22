@@ -303,6 +303,7 @@ function () {
 switch (this.getElementNumber ()) {
 case 6:
 case 14:
+case 32:
 return 4;
 case 5:
 case 7:
@@ -582,7 +583,7 @@ Clazz.defineMethod (c$, "getIdentity",
 function (allInfo) {
 var info =  new JU.SB ();
 var group3 = this.getGroup3 (true);
-if (group3 != null && group3.length > 0 && !group3.equals ("UNK")) {
+if (group3 != null && group3.length > 0 && (!group3.equals ("UNK") || this.group.chain.model.isBioModel)) {
 info.append ("[");
 info.append (group3);
 info.append ("]");
@@ -928,13 +929,13 @@ Clazz.defineMethod (c$, "getVib",
 function (ch) {
 return this.group.chain.model.ms.getVibCoord (this.i, ch);
 }, "~S");
-Clazz.overrideMethod (c$, "getNominalMass", 
+Clazz.defineMethod (c$, "getNominalMass", 
 function () {
 var mass = this.getIsotopeNumber ();
 return (mass > 0 ? mass : JU.Elements.getNaturalIsotope (this.getElementNumber ()));
 });
-Clazz.defineMethod (c$, "getMass", 
- function () {
+Clazz.overrideMethod (c$, "getMass", 
+function () {
 var mass = this.getIsotopeNumber ();
 return (mass > 0 ? mass : JU.Elements.getAtomicMass (this.getElementNumber ()));
 });

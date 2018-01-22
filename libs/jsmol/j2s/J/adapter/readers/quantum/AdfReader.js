@@ -55,8 +55,12 @@ while (this.rd () != null && !this.line.startsWith (" -----")) {
 tokens = this.getTokens ();
 if (tokens.length < 5) break;
 var symbol = tokens[1];
-if (J.api.JmolAdapter.getElementNumber (symbol) < 1) this.nXX++;
- else this.addAtomXYZSymName (tokens, pt0, symbol, null);
+var name = null;
+if (symbol.indexOf (".") >= 0) {
+name = symbol;
+symbol = symbol.substring (0, symbol.indexOf ("."));
+}if (J.api.JmolAdapter.getElementNumber (symbol) < 1) this.nXX++;
+ else this.addAtomXYZSymName (tokens, pt0, symbol, name);
 }
 });
 Clazz.defineMethod (c$, "readFrequencies", 
@@ -201,7 +205,7 @@ var energy = this.parseFloatStr (tokens[len - 2 + pt]);
 this.addMo (sym, moPt, occ, energy);
 }
 var iAtom0 = this.asc.getLastAtomSetAtomIndex ();
-for (var i = 0; i < nBF; i++) this.slaterArray[i].iAtom += iAtom0;
+for (var i = 0; i < nBF; i++) this.slaterArray[i].atomNo += iAtom0 + 1;
 
 this.setSlaters (true, true);
 this.sortOrbitals ();

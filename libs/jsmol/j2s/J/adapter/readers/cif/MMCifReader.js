@@ -53,7 +53,7 @@ if (this.key0.startsWith ("_pdbx_struct_assembly_gen.") || this.key0.startsWith 
 this.addedData = this.data;
 this.addedDataKey = this.key;
 } else if (this.key.equals ("_dssr")) {
-this.dssr = this.vwr.parseJSON (this.reader.readLine ());
+this.dssr = this.vwr.parseJSONMap (this.reader.readLine ());
 this.reader.readLine ();
 }});
 Clazz.overrideMethod (c$, "processSubclassLoopBlock", 

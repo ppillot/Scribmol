@@ -3,6 +3,7 @@ Clazz.load (["J.adapter.smarter.AtomSetCollectionReader", "JU.Lst", "$.P3"], "J.
 c$ = Clazz.decorateAsClass (function () {
 this.modr = null;
 this.parser = null;
+this.isAFLOW = false;
 this.filterAssembly = false;
 this.allowRotations = true;
 this.readIdeal = true;
@@ -32,11 +33,12 @@ this.lastSpaceGroupName = null;
 this.modulated = false;
 this.isCourseGrained = false;
 this.haveCellWaveVector = false;
-this.latticeType = null;
+this.$latticeType = null;
 this.modDim = 0;
 this.htGroup1 = null;
 this.nAtoms0 = 0;
 this.titleAtomSet = 1;
+this.intTableNo = 0;
 this.htCellTypes = null;
 this.modelMap = null;
 this.htAudit = null;
@@ -182,6 +184,11 @@ this.processUnitCellTransform ();
 this.addModelTitle ("ID");
 } else if ("__citation_title__publ_section_title__active_magnetic_irreps_details__".contains ("_" + this.key + "__")) {
 this.addModelTitle ("TITLE");
+} else if (this.key.startsWith ("_aflow_")) {
+this.isAFLOW = true;
+} else if (this.key.equals ("_symmetry_int_tables_number")) {
+this.intTableNo = this.parseIntStr (this.data);
+this.rotateHexCell = (this.isAFLOW && (this.intTableNo >= 143 && this.intTableNo <= 194));
 } else {
 this.processSubclassEntry ();
 }}return true;
@@ -356,7 +363,7 @@ Clazz.defineMethod (c$, "processSymmetrySpaceGroupName",
  function () {
 if (this.key.indexOf ("_ssg_name") >= 0) {
 this.modulated = true;
-this.latticeType = this.data.substring (0, 1);
+this.$latticeType = this.data.substring (0, 1);
 } else if (this.modulated) {
 return;
 }this.data = this.parser.toUnicode (this.data);
@@ -366,7 +373,7 @@ Clazz.defineMethod (c$, "addLatticeVectors",
  function () {
 this.lattvecs = null;
 if (this.magCenterings != null) {
-this.latticeType = "Magnetic";
+this.$latticeType = "Magnetic";
 this.lattvecs =  new JU.Lst ();
 for (var i = 0; i < this.magCenterings.size (); i++) {
 var s = this.magCenterings.get (i);
@@ -383,10 +390,10 @@ if ((f[j] = JU.PT.parseFloatFraction (s)) != 0) n++;
 if (n >= 2) this.lattvecs.addLast (f);
 }
 this.magCenterings = null;
-} else if (this.latticeType != null && "ABCFI".indexOf (this.latticeType) >= 0) {
+} else if (this.$latticeType != null && "ABCFI".indexOf (this.$latticeType) >= 0) {
 this.lattvecs =  new JU.Lst ();
 try {
-this.ms.addLatticeVector (this.lattvecs, this.latticeType);
+this.ms.addLatticeVector (this.lattvecs, this.$latticeType);
 } catch (e) {
 if (Clazz.exceptionOf (e, Exception)) {
 } else {
@@ -394,15 +401,17 @@ throw e;
 }
 }
 }if (this.lattvecs != null && this.lattvecs.size () > 0 && this.asc.getSymmetry ().addLatticeVectors (this.lattvecs)) {
-this.appendLoadNote ("Note! " + this.lattvecs.size () + " symmetry operators added for lattice centering " + this.latticeType);
+this.appendLoadNote ("Note! " + this.lattvecs.size () + " symmetry operators added for lattice centering " + this.$latticeType);
 for (var i = 0; i < this.lattvecs.size (); i++) this.appendLoadNote (JU.PT.toJSON (null, this.lattvecs.get (i)));
 
-}this.latticeType = null;
+}this.$latticeType = null;
 });
 Clazz.defineMethod (c$, "processCellParameter", 
  function () {
 for (var i = J.api.JmolAdapter.cellParamNames.length; --i >= 0; ) if (this.key.equals (J.api.JmolAdapter.cellParamNames[i])) {
-this.setUnitCellItem (i, this.parseFloatStr (this.data));
+var p = this.parseFloatStr (this.data);
+if (this.rotateHexCell && i == 5 && p == 120) p = -1;
+this.setUnitCellItem (i, p);
 return;
 }
 });

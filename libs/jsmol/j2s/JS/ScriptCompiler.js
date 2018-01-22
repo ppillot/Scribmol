@@ -875,8 +875,7 @@ if (this.nTokens != 1) return this.ERROR (0);
 var f = (this.flowContext == null ? null : this.flowContext.getBreakableContext (val = Math.abs (val)));
 if (f == null) return this.ERROR (1, this.tokenCommand.value);
 this.tokenAt (0).intValue = f.pt0;
-}if (val == 0 && intString.equals ("-0")) this.addTokenToPrefix (JS.T.tokenMinus);
-this.addNumber (2, val, intString);
+}this.addNumber (2, val, intString);
 return 2;
 }if (!this.isMathExpressionCommand && this.parenCount == 0 || this.lastToken.tok != 1073741824 && !JS.ScriptTokenParser.tokenAttr (this.lastToken, 134217728)) {
 var isBondOrMatrix = (this.script.charAt (this.ichToken) == '[');

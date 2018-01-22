@@ -39,9 +39,6 @@ this.nmrPredictFormat = null;
 this.smilesUrlFormat = null;
 this.nihResolverFormat = null;
 this.pubChemFormat = null;
-this.edsUrlFormat = "http://eds.bmc.uu.se/eds/dfs/%c2%c3/%file/%file.omap";
-this.edsUrlFormatDiff = "http://eds.bmc.uu.se/eds/dfs/%c2%c3/%file/%file_diff.omap";
-this.edsUrlCutoff = "http://eds.bmc.uu.se/eds/dfs/%c2%c3/%file/%file.sfdat";
 this.minBondDistance = 0.4;
 this.minPixelSelRadius = 6;
 this.pdbAddHydrogens = false;
@@ -197,6 +194,7 @@ this.useMinimizationThread = true;
 this.useNumberLocalization = true;
 this.useScriptQueue = true;
 this.waitForMoveTo = true;
+this.noDelay = false;
 this.vectorScale = 1;
 this.vectorSymmetry = false;
 this.vectorsCentered = false;
@@ -416,9 +414,6 @@ this.setB ("drawHover", this.drawHover);
 this.setF ("drawFontSize", this.drawFontSize);
 this.setB ("drawPicking", this.drawPicking);
 this.setB ("dsspCalculateHydrogenAlways", this.dsspCalcHydrogen);
-this.setO ("edsUrlFormat", this.edsUrlFormat);
-this.setO ("edsUrlFormatDiff", this.edsUrlFormatDiff);
-this.setO ("edsUrlCutoff", this.edsUrlCutoff);
 this.setB ("ellipsoidArcs", this.ellipsoidArcs);
 this.setB ("ellipsoidArrows", this.ellipsoidArrows);
 this.setB ("ellipsoidAxes", this.ellipsoidAxes);
@@ -485,6 +480,7 @@ this.setB ("navigationMode", this.navigationMode);
 this.setB ("navigationPeriodic", this.navigationPeriodic);
 this.setF ("navigationSpeed", this.navigationSpeed);
 this.setB ("nboCharges", this.nboCharges);
+this.setB ("noDelay", this.noDelay);
 this.setO ("nmrPredictFormat", this.nmrPredictFormat);
 this.setO ("nmrUrlFormat", this.nmrUrlFormat);
 this.setB ("partialDots", this.partialDots);
@@ -729,14 +725,6 @@ format = format.substring (0, format.indexOf ("%FILE"));
 
 return (format.indexOf ("%FILE") >= 0 ? JU.PT.rep (format, "%FILE", id) : format.indexOf ("%file") >= 0 ? JU.PT.rep (format, "%file", id.toLowerCase ()) : format + id);
 }, "~S,~S,~S");
-Clazz.defineMethod (c$, "fixSurfaceFileNameVariables", 
-function (id) {
-var isDiff = id.startsWith ("=");
-if (isDiff) id = id.substring (1);
-var server = this.resolveDataBase (null, id, (isDiff ? this.edsUrlFormatDiff : this.edsUrlFormat));
-var strCutoff = this.resolveDataBase (null, id, this.edsUrlCutoff);
-return  Clazz.newArray (-1, [server, strCutoff, isDiff ? "diff" : null]);
-}, "~S");
 c$.doReportProperty = Clazz.defineMethod (c$, "doReportProperty", 
 function (name) {
 return (name.charAt (0) != '_' && JV.GlobalSettings.unreportedProperties.indexOf (";" + name + ";") < 0);
@@ -783,9 +771,6 @@ this.app (str, "#set loadLigandFormat " + JU.PT.esc (this.pdbLoadLigandFormat));
 this.app (str, "#set smilesUrlFormat " + JU.PT.esc (this.smilesUrlFormat));
 this.app (str, "#set nihResolverFormat " + JU.PT.esc (this.nihResolverFormat));
 this.app (str, "#set pubChemFormat " + JU.PT.esc (this.pubChemFormat));
-this.app (str, "#set edsUrlFormat " + JU.PT.esc (this.edsUrlFormat));
-this.app (str, "#set edsUrlFormatDiff " + JU.PT.esc (this.edsUrlFormatDiff));
-this.app (str, "#set edsUrlCutoff " + JU.PT.esc (this.edsUrlCutoff));
 this.app (str, "set bondingVersion " + this.bondingVersion);
 this.app (str, "set legacyAutoBonding " + this.legacyAutoBonding);
 this.app (str, "set legacyAutoBonding " + this.legacyAutoBonding);
@@ -809,5 +794,5 @@ Clazz.defineMethod (c$, "app",
 if (cmd.length == 0) return;
 s.append ("  ").append (cmd).append (";\n");
 }, "JU.SB,~S");
-c$.unreportedProperties = c$.prototype.unreportedProperties = (";ambientpercent;animationfps;antialiasdisplay;antialiasimages;antialiastranslucent;appendnew;axescolor;axesposition;axesmolecular;axesorientationrasmol;axesunitcell;axeswindow;axis1color;axis2color;axis3color;backgroundcolor;backgroundmodel;bondsymmetryatoms;boundboxcolor;cameradepth;bondingversion;contextdepthmax;debug;debugscript;defaultlatttice;defaults;defaultdropscript;diffusepercent;;exportdrivers;exportscale;_filecaching;_filecache;fontcaching;fontscaling;forcefield;language;jmolinJSV;legacyautobonding;legacyhaddition;legacyjavafloat;loglevel;logfile;loggestures;logcommands;measurestylechime;loadformat;loadligandformat;smilesurlformat;pubchemformat;nihresolverformat;edsurlformat;edsurlcutoff;multiprocessor;navigationmode;;pathforallfiles;perspectivedepth;phongexponent;perspectivemodel;platformspeed;preservestate;refreshing;repaintwaitms;rotationradius;selectallmodels;showaxes;showaxis1;showaxis2;showaxis3;showboundbox;showfrank;showtiming;showunitcell;slabenabled;slab;slabrange;depth;zshade;zshadepower;specular;specularexponent;specularpercent;celshading;celshadingpower;specularpower;stateversion;statusreporting;stereo;stereostate;vibrationperiod;unitcellcolor;visualrange;windowcentered;zerobasedxyzrasmol;zoomenabled;mousedragfactor;mousewheelfactor;scriptqueue;scriptreportinglevel;syncscript;syncmouse;syncstereo;defaultdirectory;currentlocalpath;defaultdirectorylocal;ambient;bonds;colorrasmol;diffuse;fractionalrelative;frank;hetero;hidenotselected;hoverlabel;hydrogen;languagetranslation;measurementunits;navigationdepth;navigationslab;picking;pickingstyle;propertycolorschemeoverload;radius;rgbblue;rgbgreen;rgbred;scaleangstromsperinch;selectionhalos;showscript;showselections;solvent;strandcount;spinx;spiny;spinz;spinfps;navx;navy;navz;navfps;" + J.c.CBK.getNameList () + ";undo;atompicking;drawpicking;bondpicking;pickspinrate;picklabel" + ";modelkitmode;allowgestures;allowkeystrokes;allowmultitouch;allowmodelkit" + ";dodrop;hovered;historylevel;imagestate;iskiosk;useminimizationthread" + ";showkeystrokes;saveproteinstructurestate;testflag1;testflag2;testflag3;testflag4" + ";").toLowerCase ();
+c$.unreportedProperties = c$.prototype.unreportedProperties = (";ambientpercent;animationfps;antialiasdisplay;antialiasimages;antialiastranslucent;appendnew;axescolor;axesposition;axesmolecular;axesorientationrasmol;axesunitcell;axeswindow;axis1color;axis2color;axis3color;backgroundcolor;backgroundmodel;bondsymmetryatoms;boundboxcolor;cameradepth;bondingversion;contextdepthmax;debug;debugscript;defaultlatttice;defaults;defaultdropscript;diffusepercent;;exportdrivers;exportscale;_filecaching;_filecache;fontcaching;fontscaling;forcefield;language;hbondsDistanceMaximum;hbondsangleminimum;jmolinJSV;legacyautobonding;legacyhaddition;legacyjavafloat;loglevel;logfile;loggestures;logcommands;measurestylechime;loadformat;loadligandformat;smilesurlformat;pubchemformat;nihresolverformat;edsurlformat;edsurlcutoff;multiprocessor;navigationmode;;nodelay;pathforallfiles;perspectivedepth;phongexponent;perspectivemodel;platformspeed;preservestate;refreshing;repaintwaitms;rotationradius;selectallmodels;showaxes;showaxis1;showaxis2;showaxis3;showboundbox;showfrank;showtiming;showunitcell;slabenabled;slab;slabrange;depth;zshade;zshadepower;specular;specularexponent;specularpercent;celshading;celshadingpower;specularpower;stateversion;statusreporting;stereo;stereostate;vibrationperiod;unitcellcolor;visualrange;windowcentered;zerobasedxyzrasmol;zoomenabled;mousedragfactor;mousewheelfactor;scriptqueue;scriptreportinglevel;syncscript;syncmouse;syncstereo;defaultdirectory;currentlocalpath;defaultdirectorylocal;ambient;bonds;colorrasmol;diffuse;fractionalrelative;frank;hetero;hidenotselected;hoverlabel;hydrogen;languagetranslation;measurementunits;navigationdepth;navigationslab;picking;pickingstyle;propertycolorschemeoverload;radius;rgbblue;rgbgreen;rgbred;scaleangstromsperinch;selectionhalos;showscript;showselections;solvent;strandcount;spinx;spiny;spinz;spinfps;navx;navy;navz;navfps;" + J.c.CBK.getNameList () + ";undo;atompicking;drawpicking;bondpicking;pickspinrate;picklabel" + ";modelkitmode;allowgestures;allowkeystrokes;allowmultitouch;allowmodelkit" + ";dodrop;hovered;historylevel;imagestate;iskiosk;useminimizationthread" + ";showkeystrokes;saveproteinstructurestate;testflag1;testflag2;testflag3;testflag4" + ";").toLowerCase ();
 });

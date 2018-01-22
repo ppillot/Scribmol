@@ -1,8 +1,12 @@
 Clazz.declarePackage ("JV");
-Clazz.load (["J.api.JmolPropertyManager", "java.util.Hashtable"], "JV.PropertyManager", ["java.lang.Boolean", "$.Double", "$.Float", "java.util.Arrays", "$.Date", "$.Map", "JU.AU", "$.BArray", "$.BS", "$.Base64", "$.Lst", "$.M3", "$.M4", "$.P3", "$.PT", "$.SB", "$.V3", "J.api.Interface", "JM.BondSet", "$.LabelToken", "JS.SV", "$.T", "JU.BSUtil", "$.C", "$.Edge", "$.Elements", "$.Escape", "$.JmolMolecule", "$.Logger", "JV.ActionManager", "$.FileManager", "$.JC", "$.Viewer", "JV.binding.Binding"], function () {
+Clazz.load (["J.api.JmolPropertyManager", "java.util.Hashtable"], "JV.PropertyManager", ["java.lang.Boolean", "$.Double", "$.Float", "java.util.Arrays", "$.Date", "$.Map", "JU.AU", "$.BArray", "$.BS", "$.Base64", "$.Lst", "$.M3", "$.M4", "$.Measure", "$.P3", "$.PT", "$.SB", "$.V3", "J.api.Interface", "JM.BondSet", "$.LabelToken", "JS.SV", "$.T", "JU.BSUtil", "$.C", "$.Edge", "$.Elements", "$.Escape", "$.JmolMolecule", "$.Logger", "JV.ActionManager", "$.FileManager", "$.JC", "$.Viewer", "JV.binding.Binding"], function () {
 c$ = Clazz.decorateAsClass (function () {
 this.vwr = null;
 this.map = null;
+this.vNorm = null;
+this.vTemp = null;
+this.connections = null;
+this.ptTemp = null;
 Clazz.instantialize (this, arguments);
 }, JV, "PropertyManager", null, J.api.JmolPropertyManager);
 Clazz.prepareFields (c$, function () {
@@ -693,6 +697,7 @@ return this.vwr.evaluateExpression (exp);
 Clazz.overrideMethod (c$, "getModelExtract", 
 function (bs, doTransform, isModelKit, type, allTrajectories) {
 if (type.equalsIgnoreCase ("CIF")) return this.getModelCif (bs);
+if (type.equalsIgnoreCase ("QCJSON")) return this.getQCJSON (bs);
 if (type.equalsIgnoreCase ("CML")) return this.getModelCml (bs, 2147483647, true, doTransform, allTrajectories);
 if (type.equals ("PDB") || type.equals ("PQR")) return this.getPdbAtomData (bs, null, type.equals ("PQR"), doTransform, allTrajectories);
 var asV3000 = type.equalsIgnoreCase ("V3000");
@@ -708,7 +713,9 @@ var bsAtoms = JU.BSUtil.copy (bs);
 var bsModels = this.vwr.ms.getModelBS (bsAtoms, true);
 if (!isXYZ && !asJSON) {
 var title = this.vwr.ms.getFrameTitle (bsModels.nextSetBit (0));
-mol.append (title != null ? title.$replace ('\n', ' ') : isModelKit ? "Jmol Model Kit" : JV.FileManager.fixDOSName (this.vwr.fm.getFullPathName (false)));
+title = (title != null ? title.$replace ('\n', ' ') : isModelKit ? "Jmol Model Kit" : JV.FileManager.fixDOSName (this.vwr.fm.getFullPathName (false)));
+if (title.length > 80) title = title.substring (0, 77) + "...";
+mol.append (title);
 var version = JV.Viewer.getJmolVersion ();
 mol.append ("\n__Jmol-").append (version.substring (0, 2));
 var cMM;
@@ -785,6 +792,13 @@ mol.append (s);
 isOK = this.addMolFile (-1, mol, bsAtoms, bsBonds, asV3000, asJSON, noAromatic, q);
 }return (isOK ? mol.toString () : "ERROR: Too many atoms or bonds -- use V3000 format.");
 }, "JU.BS,~B,~B,~S,~B");
+Clazz.defineMethod (c$, "getQCJSON", 
+ function (bs) {
+var writer = J.api.Interface.getInterface ("J.adapter.writers.QCJSONWriter", this.vwr, "script");
+writer.set (this.vwr, null);
+writer.writeJSON ();
+return writer.toString ();
+}, "JU.BS");
 Clazz.defineMethod (c$, "getModelCif", 
  function (bs) {
 var sb =  new JU.SB ();
@@ -815,6 +829,7 @@ var nAtoms = bsAtoms.cardinality ();
 var nBonds = bsBonds.cardinality ();
 if (!asV3000 && !asJSON && (nAtoms > 999 || nBonds > 999)) return false;
 var asSDF = (iModel >= 0);
+var molData = (asSDF ? this.vwr.ms.getInfo (iModel, "molData") : null);
 var ms = this.vwr.ms;
 var atomMap =  Clazz.newIntArray (ms.ac, 0);
 var pTemp =  new JU.P3 ();
@@ -825,12 +840,17 @@ mol.append ("{\"mol\":{\"createdBy\":\"Jmol " + JV.Viewer.getJmolVersion () + "\
 } else {
 JU.PT.rightJustify (mol, "   ", "" + nAtoms);
 JU.PT.rightJustify (mol, "   ", "" + nBonds);
-mol.append ("  0  0  0  0              1 V2000");
+mol.append ("  0  0  0  0            999 V2000");
 }if (!asJSON) mol.append ("\n");
 if (asV3000) {
 mol.append ("M  V30 BEGIN CTAB\nM  V30 COUNTS ").appendI (nAtoms).append (" ").appendI (nBonds).append (" 0 0 0\n").append ("M  V30 BEGIN ATOM\n");
-}for (var i = bsAtoms.nextSetBit (0), n = 0; i >= 0; i = bsAtoms.nextSetBit (i + 1)) this.getAtomRecordMOL (iModel, ms, mol, atomMap[i] = ++n, ms.at[i], q, pTemp, asV3000, asJSON);
-
+}var o = (molData == null ? null : molData.get ("atom_value_name"));
+if (Clazz.instanceOf (o, JS.SV)) o = (o).asString ();
+var valueType = (o == null ? 0 : JS.T.getTokFromName ("" + o));
+var atomValues = (valueType == 0 && !asSDF ? null :  new JU.SB ());
+for (var i = bsAtoms.nextSetBit (0), n = 0; i >= 0; i = bsAtoms.nextSetBit (i + 1)) {
+this.getAtomRecordMOL (iModel, ms, mol, atomMap[i] = ++n, ms.at[i], q, pTemp, asV3000, asJSON, atomValues, valueType, asSDF);
+}
 if (asV3000) {
 mol.append ("M  V30 END ATOM\nM  V30 BEGIN BOND\n");
 } else if (asJSON) {
@@ -841,28 +861,54 @@ if (asV3000) {
 mol.append ("M  V30 END BOND\nM  V30 END CTAB\n");
 }if (asJSON) mol.append ("]}}");
  else {
+if (atomValues != null && atomValues.length () > 0) mol.append (atomValues.toString ());
 mol.append ("M  END\n");
 }if (asSDF) {
 try {
-var molData = this.vwr.ms.getInfo (iModel, "molData");
 var pc = ms.getPartialCharges ();
-if (pc != null) {
 if (molData == null) molData =  new java.util.Hashtable ();
 var sb =  new JU.SB ();
+if (pc != null) {
 sb.appendI (nAtoms).appendC ('\n');
 for (var i = bsAtoms.nextSetBit (0), n = 0; i >= 0; i = bsAtoms.nextSetBit (i + 1)) sb.appendI (++n).append (" ").appendF (pc[i]).appendC ('\n');
 
 molData.put ("jmol_partial_charges", sb.toString ());
-}for (var key, $key = molData.keySet ().iterator (); $key.hasNext () && ((key = $key.next ()) || true);) {
-var o = molData.get (key);
+}sb.setLength (0);
+sb.appendI (nAtoms).appendC ('\n');
+for (var i = bsAtoms.nextSetBit (0), n = 0; i >= 0; i = bsAtoms.nextSetBit (i + 1)) {
+var name = ms.at[i].getAtomName ().trim ();
+if (name.length == 0) name = ".";
+sb.appendI (++n).append (" ").append (name.$replace (' ', '_')).appendC ('\n');
+}
+molData.put ("jmol_atom_names", sb.toString ());
+for (var key, $key = molData.keySet ().iterator (); $key.hasNext () && ((key = $key.next ()) || true);) {
+o = molData.get (key);
 if (Clazz.instanceOf (o, JS.SV)) o = (o).asString ();
-mol.append ("> <" + key.toUpperCase () + ">\n").append (JU.PT.trim (o.toString (), "\n")).append ("\n\n");
+mol.append ("> <" + key.toUpperCase () + ">\n");
+this.output80CharWrap (mol, o.toString (), 80);
+mol.append ("\n\n");
 }
 } catch (e) {
 }
 mol.append ("$$$$\n");
 }return true;
 }, "~N,JU.SB,JU.BS,JU.BS,~B,~B,~B,JU.Quat");
+Clazz.defineMethod (c$, "output80CharWrap", 
+ function (mol, data, maxN) {
+if (maxN < 80) data = JU.PT.rep (data, "\n", "|");
+var lines = JU.PT.split (JU.PT.trim (JU.PT.rep (data, "\n\n", "\n"), "\n"), "\n");
+for (var i = 0; i < lines.length; i++) this.outputLines (mol, lines[i], maxN);
+
+}, "JU.SB,~S,~N");
+Clazz.defineMethod (c$, "outputLines", 
+ function (mol, data, maxN) {
+var done = false;
+for (var i = 0, n = data.length; i < n && !done; i += 80) {
+mol.append (data.substring (i, Math.min (i + maxN, n)));
+if (!(done = (maxN != 80)) && i + 80 < n) mol.append ("+");
+mol.append ("\n");
+}
+}, "JU.SB,~S,~N");
 c$.getCovalentBondsForAtoms = Clazz.defineMethod (c$, "getCovalentBondsForAtoms", 
  function (bonds, bondCount, bsAtoms) {
 var bsBonds =  new JU.BS ();
@@ -873,35 +919,84 @@ if (bsAtoms.get (bond.atom1.i) && bsAtoms.get (bond.atom2.i) && bond.isCovalent 
 return bsBonds;
 }, "~A,~N,JU.BS");
 Clazz.defineMethod (c$, "getAtomRecordMOL", 
- function (iModel, ms, mol, n, a, q, pTemp, asV3000, asJSON) {
+ function (iModel, ms, mol, n, a, q, pTemp, asV3000, asJSON, atomValues, tokValue, asSDF) {
 this.getPointTransf (iModel, ms, a, q, pTemp);
 var elemNo = a.getElementNumber ();
 var sym = (a.isDeleted () ? "Xx" : JU.Elements.elementSymbolFromNumber (elemNo));
-var iso = a.getIsotopeNumber ();
+var isotope = a.getIsotopeNumber ();
 var charge = a.getFormalCharge ();
 var o =  Clazz.newArray (-1, [pTemp]);
 if (asV3000) {
 mol.append ("M  V30 ").appendI (n).append (" ").append (sym).append (JU.PT.sprintf (" %12.5p %12.5p %12.5p 0", "p", o));
 if (charge != 0) mol.append (" CHG=").appendI (charge);
-if (iso != 0) mol.append (" MASS=").appendI (iso);
+if (isotope != 0) mol.append (" MASS=").appendI (isotope);
 mol.append ("\n");
 } else if (asJSON) {
 if (n != 1) mol.append (",");
 mol.append ("{");
 if (a.getElementNumber () != 6) mol.append ("\"l\":\"").append (a.getElementSymbol ()).append ("\",");
 if (charge != 0) mol.append ("\"c\":").appendI (charge).append (",");
-if (iso != 0 && iso != JU.Elements.getNaturalIsotope (elemNo)) mol.append ("\"m\":").appendI (iso).append (",");
+if (isotope != 0) mol.append ("\"m\":").appendI (isotope).append (",");
 mol.append ("\"x\":").appendF (a.x).append (",\"y\":").appendF (a.y).append (",\"z\":").appendF (a.z).append ("}");
 } else {
-mol.append (JU.PT.sprintf ("%10.5p%10.5p%10.5p", "p", o));
+mol.append (JU.PT.sprintf ("%10.4p%10.4p%10.4p", "p", o));
 mol.append (" ").append (sym);
 if (sym.length == 1) mol.append (" ");
-if (iso > 0) iso -= JU.Elements.getNaturalIsotope (a.getElementNumber ());
-mol.append (" ");
-JU.PT.rightJustify (mol, "  ", "" + iso);
-JU.PT.rightJustify (mol, "   ", "" + (charge == 0 ? 0 : 4 - charge));
-mol.append ("  0  0  0  0\n");
-}}, "~N,JM.ModelSet,JU.SB,~N,JM.Atom,JU.Quat,JU.P3,~B,~B");
+JU.PT.rightJustify (mol, "   ", "" + (isotope > 0 ? isotope - JU.Elements.getNaturalIsotope (a.getElementNumber ()) : 0));
+if (asSDF && isotope > 0) {
+atomValues.append ("M  ISO  1");
+JU.PT.rightJustify (atomValues, "    ", "" + n);
+JU.PT.rightJustify (atomValues, "    ", "" + isotope);
+atomValues.append ("\n");
+}JU.PT.rightJustify (mol, "   ", "" + (charge == 0 ? 0 : 4 - charge));
+mol.append ("  ").append (this.getAtomParity (a));
+mol.append ("  0  0  0\n");
+var label = (tokValue == 0 || asV3000 ? null : this.getAtomPropertyAsString (a, tokValue));
+if (label != null && (label = label.trim ()).length > 0) {
+var sn = "   " + n + " ";
+atomValues.append ("V  ").append (sn.substring (sn.length - 4));
+this.output80CharWrap (atomValues, label, 73);
+}}}, "~N,JM.ModelSet,JU.SB,~N,JM.Atom,JU.Quat,JU.P3,~B,~B,JU.SB,~N,~B");
+Clazz.defineMethod (c$, "getAtomParity", 
+ function (a) {
+if (a.getCovalentBondCount () == 4) {
+if (this.connections == null) {
+this.connections =  Clazz.newIntArray (4, 0);
+this.vTemp =  new JU.V3 ();
+this.vNorm =  new JU.V3 ();
+}var bonds = a.bonds;
+var nH = 0;
+for (var pt = 0, i = bonds.length; --i >= 0; ) {
+if (bonds[i].isCovalent ()) {
+var b = bonds[i].getOtherAtom (a);
+if (b.getAtomicAndIsotopeNumber () == 1) nH++;
+this.connections[pt++] = b.i;
+}}
+if (nH < 3) {
+java.util.Arrays.sort (this.connections);
+var atoms = this.vwr.ms.at;
+JU.Measure.getNormalThroughPoints (atoms[this.connections[0]], atoms[this.connections[1]], atoms[this.connections[2]], this.vNorm, this.vTemp);
+this.vTemp.sub2 (atoms[this.connections[3]], atoms[this.connections[0]]);
+return (this.vTemp.dot (this.vNorm) > 0 ? "1" : "2");
+}}return "0";
+}, "JM.Atom");
+Clazz.defineMethod (c$, "getAtomPropertyAsString", 
+ function (a, tok) {
+switch (tok & 1136656384) {
+case 1094713344:
+var i = a.atomPropertyInt (tok);
+return (tok == 1765808134 ? JU.PT.trim (JU.Escape.escapeColor (i), "[x]").toUpperCase () : "" + i);
+case 1086324736:
+return a.atomPropertyString (this.vwr, tok);
+case 1111490560:
+var f = a.atomPropertyFloat (this.vwr, tok, null);
+return (Float.isNaN (f) ? null : "" + f);
+default:
+if (this.ptTemp == null) this.ptTemp =  new JU.P3 ();
+a.atomPropertyTuple (this.vwr, tok, this.ptTemp);
+return (this.ptTemp == null ? null : this.ptTemp.toString ());
+}
+}, "JM.Atom,~N");
 Clazz.defineMethod (c$, "getPointTransf", 
  function (i, ms, a, q, pTemp) {
 if (ms.isTrajectory (i >= 0 ? i : a.mi)) ms.trajectory.getFractional (a, pTemp);
