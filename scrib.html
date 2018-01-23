@@ -102,13 +102,23 @@
 										Jmol.script(scribmol ,this.spt)}
 				
 			}
+			var next = undefined
 			function messages(mol,txt,nb) {
-				// console.log(txt);
-				if(txt.indexOf("assign ")!=-1) {actualise()}
-				else if(txt.indexOf("#EOF")!=-1) {jmol2Doodle2()}
+				// console.log('messages:', txt);
+				if(txt.indexOf("assign ")!=-1) {
+					next = actualise
+				}
+				else if(txt === "#EOF") {
+					jmol2Doodle2()
+				}
+				else if(txt==='Script completed' && next !== undefined) {
+					next.call()
+					next = undefined
+				}
 			}
+			
 			function messagePick(mol,txt) {
-				console.log(txt);
+				// console.log('pick messages:', txt);
 				var txt = " "+txt;
 				if(txt.indexOf("delete")!=-1) {actualise();}
 				else if ((txt.indexOf("bond")!=-1) && (!appletJmolState.isRotatingBond)) {actualise();}
@@ -124,24 +134,38 @@
 			}
 			
 			function actualise() {
-				console.log(appletJmolState.charge);
-				//return;
-				Jmol.script(scribmol ,"delete _H and connected(0); minimize addhydrogens; "
+				// workaround to prevent a wrongly interpreted pick on a bond : we have to set
+				// bond picking to false
+				var revert = ''
+				// workaround for when we need to display the partial charges or the mep
+				// Otis Rothenberger personal communication : partial charges are cached
+				// we need to reload the model in order to erase these data
+				if (appletJmolState.charge !== '' || appletJmolState.mep !== '') {
+					var fileStr = Jmol.getPropertyAsString(scribmol, 'extractModel').split("> <JMOL_PARTIAL_CHARGES>")[0];
+					Jmol.script(scribmol, 'var molf2="' + fileStr + '"; load "@molf2";'
+						+ "set bondpicking false; " 
+						//+ appletJmolState.pickAtom + "; " 
+						//+ appletJmolState.pickBond + ";"
+					)
+					revert = "set bondpicking true; "
+						+ appletJmolState.pickAtom + "; " 
+						+ appletJmolState.pickBond + "; "
+				}
+				
+				Jmol.script(scribmol ,"delete _H and connected(0); set useminimizationthread false; minimize; "
 					+ appletJmolState.display +"; "
 					+ appletJmolState.zoom+"; "
 					+ appletJmolState.mep+"; "
 					+ appletJmolState.chirality+"; "
-					+ appletJmolState.charge 
-					+"; checkBonding" );
+					+ appletJmolState.charge + "; "
+					+ revert
+					+ "checkBonding;" );
+
 				jmol2Doodle();
 			}
 			
 			function jmol2Doodle() {
-				Jmol.script(scribmol ,'subset not hydrogen; molfile = write(\"mol\"); subset; message \"#EOF\"');
-				
-			}
-			function jmol2Doodle2() {
-				var fileContent = Jmol.evaluate(scribmol , "molfile");
+				var fileContent = Jmol.getPropertyAsString(scribmol, 'extractModel', 'not _H');
 				sketcher.loadMolecule(writeMol.read(fileContent));
 			}
 			function doodle2Jmol() {
@@ -389,6 +413,13 @@
 	  			$('#bouton_dvlp').change(function(){
 	  				affichageFormule()
 	  			})
+
+				$('#model').bind('wheel', function(event) {
+					event.preventDefault();
+				})
+				$('#model canvas').bind('wheel', function(event) {
+					event.stopPropagation();
+				})
 	  			/*$('#bouton_topo').change(function(){
 	  				affichageFormule();
 	  			});*/
@@ -544,13 +575,11 @@
 			<header>
 				<h1>ScribMol</h1>
 			</header>
-			<nav>
-				
-			</nav>
-
+			
+			<form autocomplete="off">
 			<div>
 				<table>
-					<tr>
+					<tr id="wheeloff">
 						<td valign="bottom" id="sketch">
 							<script type=text/javascript>
 								// changes the default JMol color of hydrogen to black so it appears on white backgrounds
@@ -656,10 +685,6 @@
 			
 								scribmol = Jmol.getApplet("scribmol", Info);
 								
-								/*jmolInitialize("libs/jmol");
-								jmolSetCallback("UseCommandThread","true"); //needed for minimize
-								jmolSetAppletColor("#444444");
-								jmolApplet(400,cmd+"set antialiasdisplay true; set bondpicking true; set debugscript on; set messagecallback \"messages\"; set pickcallback \"messagePick\"; load data \"model\"" + ch4MolFile + " \"model\" ; "+appletJmolState.spt);*/
 							</script>
 							
 						</td>
@@ -670,6 +695,7 @@
 				</table>
 				
 			</div>
+		</form>
 			<div id="command">
 				<button onClick="optimise()">
 					<img src="img/measure.png"/>
@@ -688,73 +714,8 @@
 	</button>-->
 	
 			<div id="results">
-				<!--
-				<div style="visibility: hidden; position: absolute; left: -400px">
-				<script>
-					
-					var myCanvas = new ChemDoodle.ViewerCanvas("snapshot", 150, 150);
-  					myCanvas.emptyMessage = 'No Data Loaded!';
-  					  //the width of the bonds should be .6 pixels
-					  //myCanvas.specs.bonds_width_2D = .6;
-					  //the spacing between higher order bond lines should be 18% of the length of the bond
-					  myCanvas.specs.bonds_saturationWidth_2D = .18;
-					  //the hashed wedge spacing should be 2.5 pixels
-					  //myCanvas.specs.bonds_hashSpacing_2D = 2.5;
-					  //the atom label font size should be 10
-					  //myCanvas.specs.atoms_font_size_2D = 10;
-					  //we define a cascade of acceptable font families
-					  //if Helvetica is not found, Arial will be used
-					  myCanvas.specs.atoms_font_families_2D = ["Helvetica", "Arial", "sans-serif"];
-					  //display carbons labels if they are terminal
-					  myCanvas.specs.atoms_displayTerminalCarbonLabels_2D = true;
-					  //add some color by using JMol colors for elements
-					  myCanvas.specs.atoms_useJMOLColors = true;
-					  
-					//myCanvas.repaint();
-				</script>
-				</div>
-			-->
 			</div>
-			<!--<table>
-				<tr>
-					<td><textarea id="doodle_content" rows=20 cols=40></textarea></td>
-					<td><textarea id="jmol_content" rows=20 cols=40></textarea></td>
-				</tr>
-				<tr>
-					<td>
-						<button onClick="document.getElementById('doodle_content').value=writeMol.write(sketcher.getMolecule())">
-							Depuis<br/>Doodle 
-						</button>
-						<button onClick="sketcher.loadMolecule(writeMol.read(document.getElementById('doodle_content').value))">
-							Vers<br/>Doodle 
-						</button>
-						<button onClick="document.getElementById('doodle_content').value=jmolMol()">
-							Depuis<br/>Jmol 
-						</button>
-						<button onClick="jmolLoadInlineScript(document.getElementById('doodle_content').value, appletJmolState.spt )">
-							Vers<br/>Jmol 
-						</button>
-						<button onClick="jmolScript('load DATA \"model\"\n' + document.getElementById('doodle_content').value + ' \"model\" filter \"2D\"; '+ appletJmolState.spt )">
-							Vers<br/>Jmol 2
-						</button>
-
-					</td>
-					<td>
-						<button onClick="document.getElementById('jmol_content').value=writeMol.write(sketcher.getMolecule())">
-							Depuis<br/>Doodle 
-						</button>
-						<button onClick="sketcher.loadMolecule(writeMol.read(document.getElementById('jmol_content').value))">
-							Vers<br/>Doodle 
-						</button>
-						<button onClick="document.getElementById('jmol_content').value=jmolMol()">
-							Depuis<br/>Jmol 
-						</button>
-						<button onClick="jmolLoadInlineScript(document.getElementById('jmol_content').value,jmolIniScript)">
-							Vers<br/>Jmol 
-						</button>
-					</td>
-				</tr>
-			</table> -->
+			
 			<footer>
 				<h3>Références</h3>
 				<p>
