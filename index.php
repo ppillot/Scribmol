@@ -189,7 +189,7 @@ a img {
 	<br />
 	Applications en ligne réalisées grâce aux logiciels libres suivants : <br />
 	<a href="http://www.jmol.org" target="_blank">JSmol</a> - <a href="http://web.chemdoodle.com/" target="_blank">Chemdoodle Web Components</a> - <a href="http://www.jquery.com" target="_blank">Jquery</a> <br />
-    2011 - 2017<br />
+    2011 - 2018<br />
 	</div>
 </body>
 
