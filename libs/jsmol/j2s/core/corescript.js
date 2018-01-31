@@ -3110,13 +3110,19 @@ data[0] = filename;
 if (!this.vwr.fm.getFileDataAsString (data, -1, false, true, false)) {
 this.setErrorMessage ("io error reading " + data[0] + ": " + data[1]);
 return false;
-}if (("\n" + data[1]).indexOf ("\nJmolManifest.txt\n") >= 0) {
+}var movieScript = "";
+if (("\n" + data[1]).indexOf ("\nJmolManifest.txt\n") >= 0) {
 var path;
 if (filename.endsWith (".all.pngj") || filename.endsWith (".all.png")) {
 path = "|state.spt";
 filename += "|";
 } else {
-data[0] = filename += "|JmolManifest.txt";
+if (data[1].indexOf ("movie.spt") >= 0) {
+data[0] = filename + "|movie.spt";
+if (this.vwr.fm.getFileDataAsString (data, -1, false, true, false)) {
+movieScript = data[1];
+}}filename += "|JmolManifest.txt";
+data[0] = filename;
 if (!this.vwr.fm.getFileDataAsString (data, -1, false, true, false)) {
 this.setErrorMessage ("io error reading " + data[0] + ": " + data[1]);
 return false;
@@ -3126,14 +3132,16 @@ data[0] = filename = filename.substring (0, filename.lastIndexOf ("|")) + path;
 if (!this.vwr.fm.getFileDataAsString (data, -1, false, true, false)) {
 this.setErrorMessage ("io error reading " + data[0] + ": " + data[1]);
 return false;
-}}}this.scriptFileName = filename;
+}}if (filename.endsWith ("|state.spt")) {
+this.vwr.g.setO ("_pngjFile", filename.substring (0, filename.length - 10) + "?");
+}}this.scriptFileName = filename;
 data[1] = JV.FileManager.getEmbeddedScript (data[1]);
 var script = this.fixScriptPath (data[1], data[0]);
 if (scriptPath == null) {
 scriptPath = this.vwr.fm.getFilePath (filename, false, false);
 scriptPath = scriptPath.substring (0, Math.max (scriptPath.lastIndexOf ("|"), scriptPath.lastIndexOf ("/")));
 }script = JV.FileManager.setScriptFileReferences (script, localPath, remotePath, scriptPath);
-return this.compileScript (filename, script, this.debugScript);
+return this.compileScript (filename, script + movieScript, this.debugScript);
 }, "~S,~S,~S,~S");
 Clazz_overrideMethod (c$, "evalFunctionFloat", 
 function (func, params, values) {
@@ -3823,7 +3831,7 @@ if (sb.length () > 0) this.vwr.showString (sb.toString (), false);
 }, "~S");
 Clazz_overrideMethod (c$, "notifyResumeStatus", 
 function () {
-if (!this.chk && !this.executionStopped && !this.executionStepping) {
+if (!this.chk && !this.executionStopped && !this.executionStepping && !this.executionPaused) {
 this.vwr.scriptStatus ("script execution " + (this.$error || this.executionStopped ? "interrupted" : "resumed"));
 }if (JU.Logger.debugging) JU.Logger.debug ("script execution resumed");
 });
@@ -5486,6 +5494,7 @@ var isAsync = this.vwr.async;
 var isConcat = false;
 var doOrient = false;
 var appendNew = this.vwr.getBoolean (603979792);
+var isAudio = false;
 var filename = null;
 var bsModels;
 var i = (this.tokAt (0) == 134221834 ? 0 : 1);
@@ -5568,8 +5577,9 @@ modelName = this.optParameterAsString (++i);
 tok = JS.T.getTokFromName (modelName);
 break;
 case 1073741851:
-if (!this.chk) this.vwr.playAudio (this.optParameterAsString (++i));
-return;
+isAudio = true;
+i++;
+break;
 case 1073741824:
 i++;
 loadScript.append (" " + modelName);
@@ -5589,6 +5599,10 @@ if (this.optParameterAsString (i).equals ("+")) {
 isConcat = true;
 i++;
 loadScript.append (" +");
+}if (this.optParameterAsString (i).equals ("-")) {
+isConcat = true;
+i++;
+loadScript.append (" -");
 }if (this.tokAt (i) == 7) {
 filenames = this.stringParameterSet (i);
 i = this.iToken;
@@ -5704,12 +5718,13 @@ appendedData = this.stringParameter (i++);
 } else {
 var fNames =  new JU.Lst ();
 if (i == 1) {
-if (this.tokAt (i + 1) == 268435617) {
+if (this.tokAt (i + 1) == 268435617 || this.tokAt (i + 1) == 268435616) {
 modelName = "files";
 } else {
 i++;
 }loadScript.append (" " + modelName);
-}filter = this.getLoadFilesList (i, loadScript, sOptions, htParams, fNames);
+}if (this.tokAt (i + 1) == 268435616) isConcat = true;
+filter = this.getLoadFilesList (i, loadScript, sOptions, htParams, fNames);
 filenames = fNames.toArray ( new Array (nFiles = fNames.size ()));
 if (!isConcat && loadScript.indexOf ("/*concat*/") >= 0) isConcat = true;
 }if (!doLoadFiles) return;
@@ -5745,6 +5760,7 @@ htParams.put ("fileData", o);
 localName = null;
 filename = this.loadFileAsync ("LOAD" + (isAppend ? "_APPEND_" : "_"), filename, i, !isAppend && this.pc != this.pcResume);
 }}var out = null;
+var filecat = null;
 if (localName != null) {
 if (localName.equals (".")) localName = this.vwr.fm.getFilePath (filename, false, true);
 if (localName.length == 0 || this.vwr.fm.getFilePath (localName, false, false).equalsIgnoreCase (this.vwr.fm.getFilePath (filename, false, false))) this.invArg ();
@@ -5777,19 +5793,29 @@ filenames = (ext.equals ("all") ?  Clazz_newArray (-1, [filename, "*dom/" + id, 
 filename = "fileSet";
 loadScript = null;
 isVariable = false;
-sOptions.setLength (0);
+filecat = "-";
 } else {
 filename += "/" + ext;
-}}if (sOptions.length () > 0) loadScript.append (" /*options*/ ").append (sOptions.toString ());
+}}if (loadScript != null) {
+if (sOptions.length () > 0) loadScript.append (" /*options*/ ").append (sOptions.toString ());
 if (isVariable) loadScript.append ("\n  }");
-if (loadScript != null) htParams.put ("loadScript", loadScript);
+htParams.put ("loadScript", loadScript);
+}}if (isAudio) {
+if (filename != null) htParams.put ("audioFile", filename);
+this.addFilterAttribute (htParams, filter, "id");
+this.addFilterAttribute (htParams, filter, "pause");
+this.addFilterAttribute (htParams, filter, "play");
+this.addFilterAttribute (htParams, filter, "ended");
+this.addFilterAttribute (htParams, filter, "action");
+this.vwr.sm.playAudio (htParams);
+return;
 }this.setCursorWait (true);
 var timeMsg = this.vwr.getBoolean (603979934);
 if (timeMsg) JU.Logger.startTimer ("load");
 if (!this.$isStateScript && !isAppend) this.vwr.setBooleanProperty ("legacyJavaFloat", false);
 if (isMutate) htParams.put ("isMutate", Boolean.TRUE);
 htParams.put ("eval", this);
-errMsg = this.vwr.loadModelFromFile (null, filename, filenames, null, isAppend, htParams, loadScript, sOptions, tokType, isConcat);
+errMsg = this.vwr.loadModelFromFile (null, filename, filenames, null, isAppend, htParams, loadScript, sOptions, tokType, filecat != null ? filecat : isConcat ? "+" : " ");
 if (timeMsg) this.showString (JU.Logger.getTimerMsg ("load", 0));
 if (out != null) {
 this.vwr.fm.setFileInfo ( Clazz_newArray (-1, [localName]));
@@ -5816,6 +5842,11 @@ throw  new JS.ScriptInterruption (this, "async", 1);
 }if (this.debugHigh) this.report ("Successfully loaded:" + (filenames == null ? htParams.get ("fullPathName") : modelName), false);
 this.finalizeLoad (isAppend, appendNew, isConcat, doOrient, nFiles, ac0, modelCount0);
 });
+Clazz_defineMethod (c$, "addFilterAttribute", 
+ function (htParams, filter, key) {
+var val = JU.PT.getQuotedOrUnquotedAttribute (filter, key);
+if (val != null && val.length > 0) htParams.put (key, val);
+}, "java.util.Map,~S,~S");
 Clazz_defineMethod (c$, "addLoadData", 
  function (loadScript, key, htParams, i) {
 loadScript.append (" /*data*/ data");
@@ -5853,6 +5884,10 @@ while (i < this.slen) {
 switch (this.tokAt (i)) {
 case 268435617:
 loadScript.append ("/*concat*/ +");
+++i;
+continue;
+case 268435616:
+loadScript.append (" -");
 ++i;
 continue;
 case 2:
@@ -7410,7 +7445,7 @@ case 545259559:
 if (this.slen > 2) this.setUnits (this.getSettingStr (2, isJmolSet), tok);
 break;
 case 545259573:
-if (!this.chk) this.vwr.setPicked (-1);
+if (!this.chk) this.vwr.setPicked (-1, false);
 if (this.slen > 2) {
 this.cmdSetPicking ();
 return;
@@ -11487,6 +11522,7 @@ function (fileName, flags) {
 var noScript = ((flags & 2) == 2);
 var isAppend = ((flags & 4) == 4);
 var pdbCartoons = ((flags & 1) == 1 && !isAppend);
+var noAutoPlay = ((flags & 8) == 8);
 var cmd = null;
 fileName = fileName.trim ();
 if (fileName.startsWith ("\t")) {
@@ -11524,7 +11560,7 @@ cmd = JU.PT.rep (cmd, "load SYNC", "load append");
 }}if (cmd == null && !noScript && this.vwr.scriptEditorVisible) this.vwr.showEditor ( Clazz_newArray (-1, [fileName, this.vwr.getFileAsString3 (fileName, true, null)]));
  else cmd = (cmd == null ? "script " : cmd) + JU.PT.esc (fileName);
 } finally {
-if (cmd != null) this.vwr.evalString (cmd);
+if (cmd != null) this.vwr.evalString (cmd + (noAutoPlay ? "#!NOAUTOPLAY" : ""));
 }
 }, "~S,~N");
 Clazz_defineMethod (c$, "getDragDropFileTypeName", 

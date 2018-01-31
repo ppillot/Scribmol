@@ -14,6 +14,7 @@ Clazz.instantialize (this, arguments);
 Clazz.overrideMethod (c$, "setup", 
 function (fullPath, htParams, reader) {
 this.isBinary = true;
+this.requiresBSFilter = true;
 this.setupASCR (fullPath, htParams, reader);
 }, "~S,java.util.Map,~O");
 Clazz.overrideMethod (c$, "initializeReader", 

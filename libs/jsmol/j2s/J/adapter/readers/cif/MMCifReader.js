@@ -134,8 +134,8 @@ if (this.doCheckUnitCell) {
 this.ignoreFileSpaceGroupName = true;
 this.sgName = spaceGroup;
 this.fractionalizeCoordinates (true);
-this.asc.setModelInfoForSet ("biosymmetry", null, this.asc.iSet);
-this.asc.setModelInfoForSet ("biosymmetryCount", null, this.asc.iSet);
+this.asc.setCurrentModelInfo ("biosymmetry", null);
+this.asc.setCurrentModelInfo ("biosymmetryCount", null);
 this.asc.checkSpecial = false;
 if (this.byChain) return true;
 }}if (this.latticeCells != null && this.latticeCells[0] != 0) this.addJmolScript ("unitcell;axes on;axes unitcell;");

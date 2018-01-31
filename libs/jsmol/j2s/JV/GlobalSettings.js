@@ -124,6 +124,8 @@ this.sheetSmoothing = 1;
 this.traceAlpha = true;
 this.translucent = true;
 this.twistedSheets = false;
+this.autoplayMovie = true;
+this.allowAudio = true;
 this.allowGestures = false;
 this.allowModelkit = true;
 this.allowMultiTouch = true;
@@ -153,7 +155,7 @@ this.drawPicking = false;
 this.dsspCalcHydrogen = true;
 this.energyUnits = "kJ";
 this.exportScale = 0;
-this.helpPath = "http://chemapps.stolaf.edu/jmol/docs/index.htm";
+this.helpPath = "https://chemapps.stolaf.edu/jmol/docs/index.htm";
 this.fontScaling = false;
 this.fontCaching = true;
 this.forceField = "MMFF";
@@ -249,11 +251,15 @@ this.htNonbooleanParameterValues =  new java.util.Hashtable ();
 this.htBooleanParameterFlags =  new java.util.Hashtable ();
 this.htPropertyFlagsRemoved =  new java.util.Hashtable ();
 if (g != null) {
-if (!clearUserVariables) this.htUserVariables = g.htUserVariables;
-this.debugScript = g.debugScript;
+if (!clearUserVariables) {
+this.setO ("_pngjFile", g.getParameter ("_pngjFile", false));
+this.htUserVariables = g.htUserVariables;
+}this.debugScript = g.debugScript;
 this.disablePopupMenu = g.disablePopupMenu;
 this.messageStyleChime = g.messageStyleChime;
 this.defaultDirectory = g.defaultDirectory;
+this.autoplayMovie = g.autoplayMovie;
+this.allowAudio = g.allowAudio;
 this.allowGestures = g.allowGestures;
 this.allowModelkit = g.allowModelkit;
 this.allowMultiTouch = g.allowMultiTouch;
@@ -567,7 +573,7 @@ while (e.hasNext ()) {
 var key = e.next ();
 if (key.charAt (0) == '@' || key.startsWith ("site_")) e.remove ();
 }
-this.vwr.setPicked (-1);
+this.vwr.setPicked (-1, false);
 this.setI ("_atomhovered", -1);
 this.setO ("_pickinfo", "");
 this.setB ("selectionhalos", false);
@@ -794,5 +800,5 @@ Clazz.defineMethod (c$, "app",
 if (cmd.length == 0) return;
 s.append ("  ").append (cmd).append (";\n");
 }, "JU.SB,~S");
-c$.unreportedProperties = c$.prototype.unreportedProperties = (";ambientpercent;animationfps;antialiasdisplay;antialiasimages;antialiastranslucent;appendnew;axescolor;axesposition;axesmolecular;axesorientationrasmol;axesunitcell;axeswindow;axis1color;axis2color;axis3color;backgroundcolor;backgroundmodel;bondsymmetryatoms;boundboxcolor;cameradepth;bondingversion;contextdepthmax;debug;debugscript;defaultlatttice;defaults;defaultdropscript;diffusepercent;;exportdrivers;exportscale;_filecaching;_filecache;fontcaching;fontscaling;forcefield;language;hbondsDistanceMaximum;hbondsangleminimum;jmolinJSV;legacyautobonding;legacyhaddition;legacyjavafloat;loglevel;logfile;loggestures;logcommands;measurestylechime;loadformat;loadligandformat;smilesurlformat;pubchemformat;nihresolverformat;edsurlformat;edsurlcutoff;multiprocessor;navigationmode;;nodelay;pathforallfiles;perspectivedepth;phongexponent;perspectivemodel;platformspeed;preservestate;refreshing;repaintwaitms;rotationradius;selectallmodels;showaxes;showaxis1;showaxis2;showaxis3;showboundbox;showfrank;showtiming;showunitcell;slabenabled;slab;slabrange;depth;zshade;zshadepower;specular;specularexponent;specularpercent;celshading;celshadingpower;specularpower;stateversion;statusreporting;stereo;stereostate;vibrationperiod;unitcellcolor;visualrange;windowcentered;zerobasedxyzrasmol;zoomenabled;mousedragfactor;mousewheelfactor;scriptqueue;scriptreportinglevel;syncscript;syncmouse;syncstereo;defaultdirectory;currentlocalpath;defaultdirectorylocal;ambient;bonds;colorrasmol;diffuse;fractionalrelative;frank;hetero;hidenotselected;hoverlabel;hydrogen;languagetranslation;measurementunits;navigationdepth;navigationslab;picking;pickingstyle;propertycolorschemeoverload;radius;rgbblue;rgbgreen;rgbred;scaleangstromsperinch;selectionhalos;showscript;showselections;solvent;strandcount;spinx;spiny;spinz;spinfps;navx;navy;navz;navfps;" + J.c.CBK.getNameList () + ";undo;atompicking;drawpicking;bondpicking;pickspinrate;picklabel" + ";modelkitmode;allowgestures;allowkeystrokes;allowmultitouch;allowmodelkit" + ";dodrop;hovered;historylevel;imagestate;iskiosk;useminimizationthread" + ";showkeystrokes;saveproteinstructurestate;testflag1;testflag2;testflag3;testflag4" + ";").toLowerCase ();
+c$.unreportedProperties = c$.prototype.unreportedProperties = (";ambientpercent;animationfps;antialiasdisplay;antialiasimages;antialiastranslucent;appendnew;axescolor;axesposition;axesmolecular;axesorientationrasmol;axesunitcell;axeswindow;axis1color;axis2color;axis3color;backgroundcolor;backgroundmodel;bondsymmetryatoms;boundboxcolor;cameradepth;bondingversion;contextdepthmax;debug;debugscript;defaultlatttice;defaults;defaultdropscript;diffusepercent;;exportdrivers;exportscale;_filecaching;_filecache;fontcaching;fontscaling;forcefield;language;hbondsDistanceMaximum;hbondsangleminimum;jmolinJSV;legacyautobonding;legacyhaddition;legacyjavafloat;loglevel;logfile;loggestures;logcommands;measurestylechime;loadformat;loadligandformat;smilesurlformat;pubchemformat;nihresolverformat;edsurlformat;edsurlcutoff;multiprocessor;navigationmode;;nodelay;pathforallfiles;perspectivedepth;phongexponent;perspectivemodel;platformspeed;preservestate;refreshing;repaintwaitms;rotationradius;selectallmodels;showaxes;showaxis1;showaxis2;showaxis3;showboundbox;showfrank;showtiming;showunitcell;slabenabled;slab;slabrange;depth;zshade;zshadepower;specular;specularexponent;specularpercent;celshading;celshadingpower;specularpower;stateversion;statusreporting;stereo;stereostate;vibrationperiod;unitcellcolor;visualrange;windowcentered;zerobasedxyzrasmol;zoomenabled;mousedragfactor;mousewheelfactor;scriptqueue;scriptreportinglevel;syncscript;syncmouse;syncstereo;defaultdirectory;currentlocalpath;defaultdirectorylocal;ambient;bonds;colorrasmol;diffuse;fractionalrelative;frank;hetero;hidenotselected;hoverlabel;hydrogen;languagetranslation;measurementunits;navigationdepth;navigationslab;picking;pickingstyle;propertycolorschemeoverload;radius;rgbblue;rgbgreen;rgbred;scaleangstromsperinch;selectionhalos;showscript;showselections;solvent;strandcount;spinx;spiny;spinz;spinfps;navx;navy;navz;navfps;" + J.c.CBK.getNameList () + ";undo;atompicking;drawpicking;bondpicking;pickspinrate;picklabel" + ";modelkitmode;autoplaymovie;allowaudio;allowgestures;allowkeystrokes;allowmultitouch;allowmodelkit" + ";dodrop;hovered;historylevel;imagestate;iskiosk;useminimizationthread" + ";showkeystrokes;saveproteinstructurestate;testflag1;testflag2;testflag3;testflag4" + ";").toLowerCase ();
 });

@@ -322,19 +322,18 @@ throw e;
 }
 }, "~S");
 Clazz.defineMethod (c$, "getEmbeddedFileState", 
-function (fileName, allowCached) {
-var dir = null;
-dir = this.getZipDirectory (fileName, false, allowCached);
+function (fileName, allowCached, sptName) {
+var dir = this.getZipDirectory (fileName, false, allowCached);
 if (dir.length == 0) {
 var state = this.vwr.getFileAsString4 (fileName, -1, false, true, false, "file");
 return (state.indexOf ("**** Jmol Embedded Script ****") < 0 ? "" : JV.FileManager.getEmbeddedScript (state));
-}for (var i = 0; i < dir.length; i++) if (dir[i].indexOf (".spt") >= 0) {
+}for (var i = 0; i < dir.length; i++) if (dir[i].indexOf (sptName) >= 0) {
 var data =  Clazz.newArray (-1, [fileName + "|" + dir[i], null]);
 this.getFileDataAsString (data, -1, false, false, false);
 return data[1];
 }
 return "";
-}, "~S,~B");
+}, "~S,~B,~S");
 Clazz.defineMethod (c$, "getFullPathNameOrError", 
 function (filename, getStream, ret) {
 var names = this.getClassifiedName (JV.JC.fixProtocol (filename), true);

@@ -228,9 +228,4 @@ function (width, height) {
 var jmol = J.awtjs2d.Platform.Jmol ();
 jmol.resizeApplet (this.viewer.html5Applet,  Clazz.newIntArray (-1, [width, height]));
 }, "~N,~N");
-Clazz.overrideMethod (c$, "playAudio", 
-function (fileOrDataURI) {
-{
-Jmol.playAudio(fileOrDataURI);
-}}, "~S");
 });

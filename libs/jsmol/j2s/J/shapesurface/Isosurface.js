@@ -74,7 +74,7 @@ if ("cache" === propertyName) {
 if (this.currentMesh == null) return;
 var id = this.currentMesh.thisID;
 var imodel = this.currentMesh.modelIndex;
-this.vwr.cachePut ("cache://isosurface_" + id, this.getPropI ("jvxlDataXml", -1));
+this.vwr.cachePut ("cache://isosurface_" + id, (this.getPropI ("jvxlDataXml", -1)).getBytes ());
 this.deleteMeshI (this.currentMesh.index);
 this.setPropI ("init", null, null);
 this.setPropI ("thisID", id, null);

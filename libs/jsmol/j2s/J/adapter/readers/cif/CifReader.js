@@ -43,6 +43,7 @@ this.htCellTypes = null;
 this.modelMap = null;
 this.htAudit = null;
 this.symops = null;
+this.pdbID = null;
 this.key = null;
 this.key0 = null;
 this.data = null;
@@ -189,6 +190,8 @@ this.isAFLOW = true;
 } else if (this.key.equals ("_symmetry_int_tables_number")) {
 this.intTableNo = this.parseIntStr (this.data);
 this.rotateHexCell = (this.isAFLOW && (this.intTableNo >= 143 && this.intTableNo <= 194));
+} else if (this.key.equals ("_entry_id")) {
+this.pdbID = this.data;
 } else {
 this.processSubclassEntry ();
 }}return true;
@@ -263,6 +266,7 @@ if (this.asc.iSet > 0 && this.asc.getAtomSetAtomCount (this.asc.iSet) == 0) this
  else if (!this.isMMCIF || !this.finalizeSubclass ()) this.applySymmetryAndSetTrajectory ();
 var n = this.asc.atomSetCount;
 if (n > 1) this.asc.setCollectionName ("<collection of " + n + " models>");
+if (this.pdbID != null) this.asc.setCurrentModelInfo ("pdbID", this.pdbID);
 this.finalizeReaderASCR ();
 this.addHeader ();
 if (this.haveAromatic) this.addJmolScript ("calculate aromatic");
@@ -338,10 +342,14 @@ Clazz.defineMethod (c$, "nextAtomSet",
 function () {
 this.asc.setCurrentModelInfo ("isCIF", Boolean.TRUE);
 if (this.asc.iSet >= 0) {
-if (this.isMMCIF) this.setModelPDB (true);
-this.asc.newAtomSet ();
-if (this.isMMCIF) this.setModelPDB (true);
-} else {
+if (this.isMMCIF) {
+this.setModelPDB (true);
+if (this.pdbID != null) this.asc.setCurrentModelInfo ("pdbID", this.pdbID);
+}this.asc.newAtomSet ();
+if (this.isMMCIF) {
+this.setModelPDB (true);
+if (this.pdbID != null) this.asc.setCurrentModelInfo ("pdbID", this.pdbID);
+}} else {
 this.asc.setCollectionName (this.thisDataSetName);
 }});
 Clazz.defineMethod (c$, "processChemicalInfo", 

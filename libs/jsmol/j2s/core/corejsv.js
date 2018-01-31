@@ -64,9 +64,9 @@
 ){
 var $t$;
 //var c$;
-Jmol.___JmolDate="$Date: 2018-01-19 00:40:26 -0600 (Fri, 19 Jan 2018) $"
+Jmol.___JmolDate="$Date: 2018-01-29 08:25:59 -0600 (Mon, 29 Jan 2018) $"
 Jmol.___fullJmolProperties="src/org/jmol/viewer/Jmol.properties"
-Jmol.___JmolVersion="14.28.3"
+Jmol.___JmolVersion="14.29.2"
 // JSmolJavaExt.js
  
 
@@ -13635,6 +13635,24 @@ while (++i < len && line.charAt (i) != '"') if (line.charAt (i) == '\\') i++;
 next[0] = i + 1;
 return line.substring (pt, i);
 }, "~S,~A");
+c$.getQuotedOrUnquotedAttribute = Clazz_defineMethod (c$, "getQuotedOrUnquotedAttribute", 
+function (line, key) {
+if (line == null || key == null) return null;
+var pt = line.toLowerCase ().indexOf (key.toLowerCase () + "=");
+if (pt < 0 || (pt = pt + key.length + 1) >= line.length) return "";
+var c = line.charAt (pt);
+switch (c) {
+case '\'':
+case '"':
+pt++;
+break;
+default:
+c = ' ';
+line += " ";
+}
+var pt1 = line.indexOf (c, pt);
+return (pt1 < 0 ? null : line.substring (pt, pt1));
+}, "~S,~S");
 c$.getCSVString = Clazz_defineMethod (c$, "getCSVString", 
 function (line, next) {
 var i = next[1];

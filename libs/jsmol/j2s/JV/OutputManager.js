@@ -600,7 +600,7 @@ v.addLast (newName);
 v.addLast (null);
 } else {
 var ret = (isSparDir ? fm.spardirCache.get (name) : fm.getFileAsBytes (name, null));
-if (!JU.AU.isAB (ret)) return ret;
+if (!JU.AU.isAB (ret)) return "ERROR: " + ret;
 newName = this.addPngFileBytes (name, ret, iFile, crcMap, isSparDir, newName, ptSlash, v);
 }name = "$SCRIPT_PATH$" + newName;
 }crcMap.put (newName, newName);

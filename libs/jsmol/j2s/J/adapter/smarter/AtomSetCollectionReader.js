@@ -3,6 +3,7 @@ Clazz.load (["javajs.api.GenericLineReader", "JU.SB"], "J.adapter.smarter.AtomSe
 c$ = Clazz.decorateAsClass (function () {
 this.isBinary = false;
 this.debugging = false;
+this.requiresBSFilter = false;
 this.asc = null;
 this.reader = null;
 this.binaryDoc = null;
@@ -294,8 +295,10 @@ this.asc.setInfo ("loadState", s == null ? "" : s);
 s = this.htParams.get ("smilesString");
 if (s != null) this.asc.setInfo ("smilesString", s);
 if (!this.htParams.containsKey ("templateAtomCount")) this.htParams.put ("templateAtomCount", Integer.$valueOf (this.asc.ac));
-if (this.htParams.containsKey ("bsFilter")) this.htParams.put ("filteredAtomCount", Integer.$valueOf (JU.BSUtil.cardinalityOf (this.htParams.get ("bsFilter"))));
-if (!this.calculationType.equals ("?")) this.asc.setInfo ("calculationType", this.calculationType);
+if (this.bsFilter != null) {
+this.htParams.put ("filteredAtomCount", Integer.$valueOf (JU.BSUtil.cardinalityOf (this.bsFilter)));
+this.htParams.put ("bsFilter", this.bsFilter);
+}if (!this.calculationType.equals ("?")) this.asc.setInfo ("calculationType", this.calculationType);
 var name = this.asc.fileTypeName;
 var fileType = name;
 if (fileType.indexOf ("(") >= 0) fileType = fileType.substring (0, fileType.indexOf ("("));
@@ -339,7 +342,7 @@ if (this.htParams.containsKey ("outputChannel")) this.out = this.htParams.get ("
 if (this.htParams.containsKey ("vibrationNumber")) this.desiredVibrationNumber = (this.htParams.get ("vibrationNumber")).intValue ();
  else if (this.htParams.containsKey ("modelNumber")) this.desiredModelNumber = (this.htParams.get ("modelNumber")).intValue ();
 this.applySymmetryToBonds = this.htParams.containsKey ("applySymmetryToBonds");
-this.bsFilter = this.htParams.get ("bsFilter");
+this.bsFilter = (this.requiresBSFilter ? this.htParams.get ("bsFilter") : null);
 this.setFilter (null);
 this.fillRange = this.htParams.get ("fillRange");
 if (this.strSupercell != null) {

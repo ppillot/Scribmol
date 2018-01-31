@@ -147,7 +147,7 @@ continue;
 if (this.atomData != null) {
 var atomValueName = molData.get ("atom_value_name");
 molData.put (atomValueName == null ? "atom_values" : atomValueName.toString (), this.atomData);
-}if (!molData.isEmpty ()) this.asc.setModelInfoForSet ("molData", molData, this.asc.iSet);
+}if (!molData.isEmpty ()) this.asc.setCurrentModelInfo ("molData", molData);
 }, "~N,~N");
 Clazz.defineMethod (c$, "readAtomValues", 
  function () {

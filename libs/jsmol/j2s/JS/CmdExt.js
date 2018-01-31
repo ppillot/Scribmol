@@ -2662,13 +2662,14 @@ var type2 = "";
 var val = null;
 var tVar = null;
 var nVibes = 0;
-var sceneType = "PNGJ";
+var sceneType = null;
 var isCoord = false;
 var bsFrames = null;
 var width = -1;
 var height = -1;
 var isExport = false;
 var fileName = null;
+var quality = -2147483648;
 if (tok != 0 && isCommand && this.slen > 1 && this.tokAt (this.slen - 2) == 1073741848) {
 type = this.paramAsStr (this.slen - 1).toUpperCase ();
 pt0 = argCount;
@@ -2751,6 +2752,8 @@ val = JS.SV.sValue (this.tokenAt (++pt, args)).toUpperCase ();
 if (JU.PT.isOneOf (val, ";PNG;PNGJ;")) {
 sceneType = val;
 pt++;
+} else {
+sceneType = "PNG";
 }break;
 case 4166:
 nVibes = eval.intParameterRange (++pt, 1, 10);
@@ -2785,7 +2788,6 @@ height = JS.SV.iValue (this.tokenAt (pt++, args));
 if (height <= 0) this.invArg ();
 }break;
 }
-var quality = -2147483648;
 if (pt0 < argCount) {
 val = JS.SV.sValue (this.tokenAt (pt, args));
 if (val.equalsIgnoreCase ("clipboard")) {
@@ -2802,11 +2804,15 @@ type = val.toUpperCase ();
 if (pt + 1 == argCount) pt++;
 }if (type.equals ("IMAGE") && JU.PT.isOneOf (val.toLowerCase (), ";jpg;jpeg;jpg64;jpeg64;gif;gift;pdf;ppm;png;pngj;pngt;scene;")) {
 type = val.toUpperCase ();
+quality = -2147483648;
 pt++;
 }}if (pt + 2 == argCount) {
 var s = JS.SV.sValue (this.tokenAt (++pt, args));
-if (s.length > 0 && s.charAt (0) != '.') type = val.toUpperCase ();
-}switch (JS.CmdExt.tokAtArray (pt, args)) {
+if (s.length > 0 && s.charAt (0) != '.') {
+if (val == null) {
+System.out.println ("??");
+type = val.toUpperCase ();
+}}}switch (JS.CmdExt.tokAtArray (pt, args)) {
 case 0:
 showOnly = true;
 break;
@@ -2986,7 +2992,7 @@ if (isCommand && showOnly && fileName == null) {
 showOnly = false;
 fileName = "\1";
 }len = -1;
-if (quality < 0) quality = -1;
+if (sceneType == null && quality < 0) quality = -1;
 }if (data == null) data = "";
 if (len == 0) len = (bytes == null ? data.length : Clazz.instanceOf (bytes, String) ? (bytes).length : (bytes).length);
 }if (!isCommand) return data;
@@ -3394,7 +3400,7 @@ break;
 if (!this.chk) msg = this.vwr.getStateInfo ();
 break;
 } else if (this.tokAt (2) == 1228935687 && (len = this.slen) == 4) {
-if (!this.chk) msg = this.vwr.fm.getEmbeddedFileState (this.paramAsStr (3), true);
+if (!this.chk) msg = this.vwr.fm.getEmbeddedFileState (this.paramAsStr (3), true, "state.spt");
 break;
 }len = 3;
 name = this.paramAsStr (2);

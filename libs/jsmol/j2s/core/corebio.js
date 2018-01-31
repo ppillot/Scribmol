@@ -287,8 +287,10 @@ this.finalizeReaderPDB ();
 Clazz_defineMethod (c$, "finalizeReaderPDB", 
 function () {
 this.checkNotPDB ();
-if (this.pdbID != null) this.asc.setAtomSetName (this.pdbID);
-this.checkUnitCellParams ();
+if (this.pdbID != null) {
+this.asc.setAtomSetName (this.pdbID);
+this.asc.setCurrentModelInfo ("pdbID", this.pdbID);
+}this.checkUnitCellParams ();
 if (!this.isCourseGrained) this.connectAll (this.maxSerial, this.isConnectStateBug);
 var symmetry;
 if (this.vBiomolecules != null && this.vBiomolecules.size () > 0 && this.asc.ac > 0) {
@@ -817,8 +819,9 @@ this.checkNotPDB ();
 this.haveMappedSerials = false;
 this.sbConect = null;
 this.asc.newAtomSet ();
+this.asc.setCurrentModelInfo ("pdbID", this.pdbID);
 if (this.asc.iSet == 0 || this.isTrajectory) this.asc.setAtomSetName (this.pdbID);
- else this.asc.setModelInfoForSet ("name", this.pdbID, this.asc.iSet);
+ else this.asc.setCurrentModelInfo ("name", this.pdbID);
 this.checkUnitCellParams ();
 if (!this.isCourseGrained) this.setModelPDB (true);
 this.asc.setCurrentAtomSetNumber (modelNumber);
@@ -906,6 +909,7 @@ return;
 if (htName != null) {
 hetName = htName + hetName;
 }this.htHetero.put (groupName, hetName);
+this.appendLoadNote (groupName + " = " + hetName);
 });
 Clazz_defineMethod (c$, "anisou", 
  function () {

@@ -134,7 +134,7 @@
 			}
 			
 			function actualise() {
-				// workaround to prevent a wrongly interpreted pick on a bond : we have to set
+				/* workaround to prevent a wrongly interpreted pick on a bond : we have to set
 				// bond picking to false
 				var revert = ''
 				// workaround for when we need to display the partial charges or the mep
@@ -151,14 +151,13 @@
 						+ appletJmolState.pickAtom + "; " 
 						+ appletJmolState.pickBond + "; "
 				}
-				
-				Jmol.script(scribmol ,"delete _H and connected(0); set useminimizationthread false; minimize; "
+				*/
+				Jmol.script(scribmol ,"delete _H and connected(0); set useminimizationthread false; minimize addhydrogens; "
 					+ appletJmolState.display +"; "
 					+ appletJmolState.zoom+"; "
-					+ appletJmolState.mep+"; "
 					+ appletJmolState.chirality+"; "
 					+ appletJmolState.charge + "; "
-					+ revert
+					+ appletJmolState.mep+"; "
 					+ "checkBonding;" );
 
 				jmol2Doodle();
