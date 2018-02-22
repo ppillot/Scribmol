@@ -98,7 +98,7 @@
 					if (!checked) Jmol.script(scribmol ,"isosurface s1 delete"); 
 					this.setSpt()
 				},
-				setSpt : function() {this.spt = "set bondpicking true; " + this.pickAtom + "; " + this.pickBond + "; "+ this.display + "; " + this.chirality + "; " + this.charge + "; " + this.mep + ";" ; 
+				setSpt : function() {this.spt = "" + this.pickAtom + "; " + this.pickBond + "; "+ this.display + "; " + this.chirality + "; " + this.charge + "; " + this.mep + ";" ; 
 										Jmol.script(scribmol ,this.spt)}
 				
 			}
@@ -158,7 +158,7 @@
 					+ appletJmolState.chirality+"; "
 					+ appletJmolState.charge + "; "
 					+ appletJmolState.mep+"; "
-					+ "checkBonding;" );
+					+ "checkBonding; #exit;" );
 
 				jmol2Doodle();
 			}
@@ -649,11 +649,11 @@
 							
 							<script type="text/javascript">
 								var cmd="function checkBonding() { \
-									select (carbon and bondcount>4 and charge=0); \
+									select (carbon and bondcount>4 and charge=0) or (oxygen and bondcount>2 and charge=0) or (nitrogen and bondcount>3 and charge=0) or (hydrogen and bondcount>1 and charge=0); \
 									if ({selected}.size>0) {\
 										color background yellow; halos on; color halos red;\
 										set echo top; font echo 14 sansserif; color echo red;\
-										echo Ces atomes de carbone possèdent trop de liaisons|Supprimer un ou plusieurs groupements;\
+										echo Ces atomes possèdent trop de liaisons|Supprimer un ou plusieurs groupements;\
 									} else { \
 										color background [x444444]; select all; halos off; set echo top; echo;\
 									}	\
@@ -671,7 +671,7 @@
 									j2sPath : "libs/jsmol/j2s",
 									memoryLimit : 512,
 									readyFunction : null,
-									script : cmd+"set antialiasdisplay false; set bondpicking true; set debugscript on; set messagecallback \"messages\"; set pickcallback \"messagePick\"; set atommovedcallback \"messageDrag\"; load data \"model\"" + ch4MolFile + " \"model\" ; "+appletJmolState.spt,
+									script : cmd+"set antialiasdisplay false; set debugscript on; set messagecallback \"messages\"; set pickcallback \"messagePick\"; set atommovedcallback \"messageDrag\"; load data \"model\"" + ch4MolFile + " \"model\" ; "+appletJmolState.spt,
 									src : null,
 									use : "HTML5 noWebGL noImage",
 									width : '400'
