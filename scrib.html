@@ -14,7 +14,7 @@
 		<!-- Replace favicon.ico & apple-touch-icon.png in the root of your domain and delete these references -->
 		<!--<link rel="shortcut icon" href="/favicon.ico" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />-->
-		
+
 		<link rel="stylesheet" href="libs/chemdoodle/ChemDoodleWeb.css" type="text/css">
 		<script type="text/javascript" src="libs/chemdoodle/ChemDoodleWeb-libs.js"></script>
 		<script type="text/javascript" src="libs/chemdoodle/ChemDoodleWeb-unpacked.js"></script>
@@ -78,7 +78,7 @@
 					}
 					this.setSpt();
 				},
-				changeCharge: function(checked) { 
+				changeCharge: function(checked) {
 					if (checked) {
 						this.chirality = "";
 						this.charge = "select *; calculate partialcharge; label %[partialCharge]";
@@ -93,14 +93,14 @@
 					this.mep = (checked)? "select *; calculate partialcharge; \
 											a={*}.partialcharge.min; b={*}.partialcharge.max; if (a==0 && b==0) {{*}.partialcharge = 0.1; {*}.partialcharge=0.0}; \
 											moyenne = {*}.partialcharge; ecart = (b-a)/10; dmin= moyenne-ecart; dmax=moyenne+ecart;\
-											isosurface s1 resolution 5.5 vdw color range @dmin @dmax map MEP translucent":""; 
-																
-					if (!checked) Jmol.script(scribmol ,"isosurface s1 delete"); 
+											isosurface s1 resolution 5.5 vdw color range @dmin @dmax map MEP translucent":"";
+
+					if (!checked) Jmol.script(scribmol ,"isosurface s1 delete");
 					this.setSpt()
 				},
-				setSpt : function() {this.spt = "" + this.pickAtom + "; " + this.pickBond + "; "+ this.display + "; " + this.chirality + "; " + this.charge + "; " + this.mep + ";" ; 
+				setSpt : function() {this.spt = "" + this.pickAtom + "; " + this.pickBond + "; "+ this.display + "; " + this.chirality + "; " + this.charge + "; " + this.mep + ";" ;
 										Jmol.script(scribmol ,this.spt)}
-				
+
 			}
 			var next = undefined
 			function messages(mol,txt,nb) {
@@ -116,13 +116,13 @@
 					next = undefined
 				}
 			}
-			
+
 			function messagePick(mol,txt) {
 				// console.log('pick messages:', txt);
 				var txt = " "+txt;
 				if(txt.indexOf("delete")!=-1) {actualise();}
 				else if ((txt.indexOf("bond")!=-1) && (!appletJmolState.isRotatingBond)) {actualise();}
-				
+
 			}
 			calculateChirality = debounce(function() {
 				Jmol.script(scribmol, "select all; label off; calculate chirality; label %[chirality]")
@@ -132,7 +132,7 @@
 					calculateChirality()
 				}
 			}
-			
+
 			function actualise() {
 				/* workaround to prevent a wrongly interpreted pick on a bond : we have to set
 				// bond picking to false
@@ -143,12 +143,12 @@
 				if (appletJmolState.charge !== '' || appletJmolState.mep !== '') {
 					var fileStr = Jmol.getPropertyAsString(scribmol, 'extractModel').split("> <JMOL_PARTIAL_CHARGES>")[0];
 					Jmol.script(scribmol, 'var molf2="' + fileStr + '"; load "@molf2";'
-						+ "set bondpicking false; " 
-						//+ appletJmolState.pickAtom + "; " 
+						+ "set bondpicking false; "
+						//+ appletJmolState.pickAtom + "; "
 						//+ appletJmolState.pickBond + ";"
 					)
 					revert = "set bondpicking true; "
-						+ appletJmolState.pickAtom + "; " 
+						+ appletJmolState.pickAtom + "; "
 						+ appletJmolState.pickBond + "; "
 				}
 				*/
@@ -162,15 +162,15 @@
 
 				jmol2Doodle();
 			}
-			
+
 			function jmol2Doodle() {
 				var fileContent = Jmol.getPropertyAsString(scribmol, 'extractModel', 'not _H');
 				sketcher.loadMolecule(writeMol.read(fileContent));
 			}
 			function doodle2Jmol() {
-				//jmolScript('load DATA \"model\"\n' + writeMol.write(sketcher.getMolecule()) + ' \"model\" filter \'2D\'); 
+				//jmolScript('load DATA \"model\"\n' + writeMol.write(sketcher.getMolecule()) + ' \"model\" filter \'2D\');
 				var molFile = ChemDoodle.writeMOL(sketcher.getMolecule());
-				
+
 				//nettoyons la 3D !
 				var tab = molFile.split("\n");
 				for (i=0; i<tab.length; i++) {
@@ -180,8 +180,8 @@
 					}
 				}//alert (molFile + "\n" +tab.join("\n"))
 				molFile = tab.join("\n");
-				
-				
+
+
 				//var txt2 = txt.split("   ")[3];
 				//var val = parseFloat(txt2);
 				var spt = "load DATA \"model\"\n" + molFile + " \"model\" " + "filter '2D';";
@@ -197,7 +197,7 @@
 				this.jmolState = ""
 				this.doodleImg =""
 				this.jmolImg =""
-				
+
 				this.restore = function () {
 					sketcher.loadMolecule(writeMol.read(this.doodleMOL));
 					/*var spt = "load DATA \"model\"\n" + this.doodleMOL + "END \"model\" filter \"2D\"";
@@ -209,36 +209,36 @@
 			snapshotInfos = new Array();
 			function snapshot() {
 				//recupérer l'image du canevas sketcher
-				
+
 				//créer un nouveau canevas dans la div results
 				//$('results').append("<canvas id=\"snap" +nbSnapshots+ "\"></canvas>");
-				
+
 				//utiliser chemdoodle pour reproduire la molécule dedans
 				var a = sketcher.getMolecule()
 				myCanvas.loadMolecule(a)
 				sketcher.center()
 				sketcher.repaint();
-				
+
 				//on récupère l'image dans myCanvas
 				var imgData = document.getElementById('snapshot').toDataURL("image/png");
-				
+
 				//on crée le texte de la balise image
 				var snapshotId = "snapshotnum" + snapshotInfos.length;
 				var num = snapshotInfos.length;
 				var balise = "&nbsp;<img src=\"" + imgData +"\" id=\"" + snapshotId +"\" />";
-				
+
 				//on ajoute l'image à la liste
 				$('#results').append(balise);
-				
+
 				//on créé l'objet qui stocke les clichés
 				var cliche = new SnapshotInfo()
 				cliche.doodleMOL = ChemDoodle.writeMOL(sketcher.getMolecule());
 				cliche.doodleImg = imgData;
 				//jmolScriptWait('molfile = write("mol")');
 				cliche.jmolState = Jmol.getPropertyAsString(scribmol , "stateinfo");
-				
+
 				snapshotInfos.push(cliche);
-				
+
   				$('#'+snapshotId).click(function(){snapshotInfos[num].restore()})
 			}
 			function optimise(txt){
@@ -252,7 +252,7 @@
 				jQuery.post( (is_smile) ?
 					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/SDF"
 					:
-					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/" + smile + "/SDF?record_type=3d", 
+					"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/" + smile + "/SDF?record_type=3d",
 					{
 						smiles: smile,
 						record_type: '3d'
@@ -264,7 +264,7 @@
 							if (!is_smile) spt += "; set echo bottom left; font echo 20 sansserif bol; color echo white; echo "+txt;
 							Jmol.script(scribmol ,spt);
 							if (is_smile) {
-								jQuery.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/property/IUPACName/JSON", 
+								jQuery.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/property/IUPACName/JSON",
 									{
 										smiles: smile,
 										property: 'IUPACName'
@@ -277,7 +277,7 @@
 									}
 								)
 							}
-						} else alert("Aucun modèle correspondant à votre recherche n'a été retrouvé")									
+						} else alert("Aucun modèle correspondant à votre recherche n'a été retrouvé")
 					}
 				)
 				jQuery.post( (is_smile) ?
@@ -289,7 +289,7 @@
 						if (data!="") {
 							var d = removeH(data)
 							sketcher.loadMolecule(writeMol.read(d));
-						}	
+						}
 					}
 				)
 			}
@@ -300,15 +300,15 @@
 			function removeH(molFile){
 				var txt = "";
 				var tabFile = molFile.split("\n");
-				
+
 				//on va chercher en ligne 4, le nombre d'atomes et de liaisons
 				var ligne = tabFile[3];
 				var nbAtomes = parseInt(ligne.substring(0,3)); var nbLiaisons = parseInt(ligne.substring(3,6))
-				
+
 				var hydrogenes = new Array();
 				var renumerotation = new Array();
 				var tabFile2 = new Array();
-				
+
 				var previousAtom = 0;
 				for (i=4;i<=3+nbAtomes;i++) {
 					if (tabFile[i].indexOf(" H ")!=-1) {
@@ -335,11 +335,11 @@
 						if ((typeof(hydrogenes[at1])!="undefined")||(typeof(hydrogenes[at2])!="undefined")) continue;
 						if (typeof(renumerotation[at1])!="undefined") {
 							var t = renumerotation[at1].toString();
-							l = pad.substr(0,3-t.length) + t + l.substr(3) 
+							l = pad.substr(0,3-t.length) + t + l.substr(3)
 						}
 						if (typeof(renumerotation[at2])!="undefined") {
 							var t = renumerotation[at2].toString();
-							l = l.substr(0,3) + pad.substr(0,3-t.length) + t + l.substr(6) 
+							l = l.substr(0,3) + pad.substr(0,3-t.length) + t + l.substr(6)
 						}
 						tabFile2.push(l);
 						nbLiaisons2++;
@@ -347,9 +347,9 @@
 					var tab = tabFile.slice(0,3);
 					var l = pad.substr(0,3-previousAtom.toString().length) + previousAtom + pad.substr(0,3-nbLiaisons2.toString().length) + nbLiaisons2 + ligne.substr(6);
 					tab = tab.concat(l,tabFile2,tabFile.slice(4+nbAtomes+nbLiaisons))
-					
+
 				} else var tab = tabFile;
-				//alert(molFile+"\n\n"+tab.join("\n"))							
+				//alert(molFile+"\n\n"+tab.join("\n"))
 				return tab.join("\n");
 			}
 			function ajouterAtomeX() {
@@ -358,7 +358,7 @@
 				d,db,ds,dy,er,es,eu,f,fe,fm,fr,ga,gd,ge,h,he,hf,hg,ho,hs,i,in,ir,k,kr,la,li,lr,lu,md,mg,mn,mo,mt,\
 				n,na,nb,nd,ne,ni,no,np,o,os,p,pa,pb,pd,pm,po,pr,pt,pu,ra,rb,re,rf,rg,rh,rn,ru,s,sb,sc,se,sg,si,sm,\
 				sn,sr,t,ta,tb,tc,te,th,ti,tl,tm,u,v,w,xe,y,yb,zn,zr,";
-				
+
 				if (elements.indexOf(","+elt+",")!=-1) {
 					appletJmolState.appendAtom(elt)
 				} else {
@@ -378,37 +378,37 @@
 	});*/
 			function affichageFormule() {
 				var dvlp = !document.getElementById('bouton_dvlp').checked;
-	  				
+
 	  					sketcher.specs.atoms_showAllAtoms_2D = dvlp;
 	  					sketcher.specs.atoms_displayTerminalCarbonLabels_2D = dvlp;
 	  					sketcher.repaint();
-	  			
+
 			}
 			$(function() {
-				
+
 				//$( '[name="assign"]' ).button();
 				$( '#atomes' ).buttonset();
-				
+
 				//$( '[name="bond"]' ).button();
 				$( '#liaisons' ).buttonset();
-				
+
 				//$( '[name="display"]' ).button();
 				$( '#affichage' ).buttonset();
-				
+
 				//$('#formule').buttonset();
-				
+
 				$('#cactus').click(function(){
 	 				var txt = $('#autocomplete').val();
 	 				if (txt.length<2){
 	 					alert("Requête trop courte");
-	 					
+
 	 				}else optimise(txt);
 	  			});
-	  			
+
 	  			$('#autocomplete').keypress(function(event) {
   					if ( event.which == 13 ) $('#cactus').click();
 	  			})
-	  			
+
 	  			$('#bouton_dvlp').change(function(){
 	  				affichageFormule()
 	  			})
@@ -425,7 +425,7 @@
 				margin: 0px;
 				padding: 10px;
 				background: #eee;
-		
+
 			}
 			.bouton, .bouton img {
 				padding: 0px;
@@ -483,7 +483,7 @@
 			#model:hover .ui-button {
 				opacity: 1;
 			}
-			
+
 			canvas.ChemDoodleWebComponent {
 				border: none;
 			}
@@ -569,7 +569,7 @@
 			<header>
 				<h1>ScribMol</h1>
 			</header>
-			
+
 			<form autocomplete="off">
 			<div>
 				<table>
@@ -590,10 +590,10 @@
 								// the following two settings add overlap clear widths, so that some depth is introduced to overlapping bonds
 								sketcher.specs.bonds_clearOverlaps_2D = true;
 								sketcher.specs.bonds_overlapClearWidth_2D = 2;
-								
+
 								//pp
 								sketcher.specs.atoms_showAllAtoms_2D = true;
-								
+
 								// the component needs to be repainted here because we do not call the Canvas.loadMolecule() function
 								sketcher.repaint();
 								writeMol = new ChemDoodle.io.MOLInterpreter();
@@ -619,7 +619,7 @@
 									<label for="bouton_delete"><img src="img/delete.png" title="Effacer l'atome"/></label>
 								<input type="radio" onclick="appletJmolState.dragAtom()" name="assign"  id="bouton_drag"/>
 									<label for="bouton_drag"><img src="img/drag.png" title="Déplacer l'atome"/></label>
-									
+
 							</span>
 							&nbsp;
 							<span id="liaisons">
@@ -629,7 +629,7 @@
 									<label for="bouton_delete_bond"><img src="img/delete.png" title="Effacer la liaison"/></label>
 								<input type="radio" onclick="appletJmolState.rotateBond()" name="bond"  id="bouton_rotate"/>
 									<label for="bouton_rotate"><img src="img/rotate.png" title="Rotation autour de la liaison"/></label>
-									
+
 							</span>
 							&nbsp;
 							<span id="affichage">
@@ -642,11 +642,11 @@
 								<input type="checkbox" onclick="appletJmolState.changeChirality(this.checked)" id="bouton_chiralite"/>
 									<label for="bouton_chiralite"><img src="img/chiral.png" title="Afficher les chiralités" /></label>
 								<input type="checkbox" onclick="appletJmolState.changeMep(this.checked)" id="bouton_potentiel_electrostatique" />
-									<label for="bouton_potentiel_electrostatique"><img src="img/cpart.png" title="Afficher le potentiel électrostatique" /></label>	
+									<label for="bouton_potentiel_electrostatique"><img src="img/cpart.png" title="Afficher le potentiel électrostatique" /></label>
 							</span>
-							</div>	
-								
-							
+							</div>
+
+
 							<script type="text/javascript">
 								var cmd="function checkBonding() { \
 									select (carbon and bondcount>4 and charge=0) or (oxygen and bondcount>2 and charge=0) or (nitrogen and bondcount>3 and charge=0) or (hydrogen and bondcount>1 and charge=0); \
@@ -676,50 +676,50 @@
 									use : "HTML5 noWebGL noImage",
 									width : '400'
 								};
-			
+
 								scribmol = Jmol.getApplet("scribmol", Info);
-								
+
 							</script>
-							
+
 						</td>
 					</tr>
-					
-							
-							
+
+
+
 				</table>
-				
+
 			</div>
 		</form>
 			<div id="command">
 				<button onClick="optimise()">
 					<img src="img/measure.png"/>
-					Optimiser les structures à partir des modèles de PubChem... 
+					Optimiser les structures à partir des modèles de PubChem...
 				</button>
 			</div>
 			<div id="search">
-					Rechercher sur PubChem 
+					Rechercher sur PubChem
 					<input type="text" id="autocomplete" placeholder="Nom d'une molécule. Ex: aspirine"/>
 					<button id="cactus">Rechercher</button>
 			</div>
 <div id="progress"></div>
 <br />
 	<!--<button onClick="snapshot()">
-		<img src="img/snapshot.png" /> Mémoriser 
+		<img src="img/snapshot.png" /> Mémoriser
 	</button>-->
-	
+
 			<div id="results">
 			</div>
-			
+
 			<footer>
 				<h3>Références</h3>
 				<p>
-					<a href="http://web.chemdoodle.com" title="Open Source HTML5 Chemistry - ChemDoodle Web Components" target="_blank"><img src="http://web.chemdoodle.com/resources/images/badges/badge120x60.png" /></a>
+					<a href="http://web.chemdoodle.com" title="Open Source HTML5 Chemistry - ChemDoodle Web Components" target="_blank"><img src="https://web.chemdoodle.com/img/chemdoodleweb_logo.png" style="height: 60px" /></a>
 					<a href="http://jmol.org" title="Jmol" target="_blank"><img src="http://wiki.jmol.org/images/b/ba/JSmol_fait-avec_13.png" /></a>
 				</p>
 				<p>
-					Les données sont issues de la banque de données <b>PubChem</b> 
-					(Kim S, Thiessen PA, Bolton EE, Chen J, Fu G, Gindulyte A, Han L, He J, He S, Shoemaker BA, Wang J, Yu B, Zhang J, Bryant SH. 
-					PubChem Substance and Compound databases. Nucleic Acids Res. 2016 Jan 4; 44(D1):D1202-13. Epub 2015 Sep 22 
+					Les données sont issues de la banque de données <b>PubChem</b>
+					(Kim S, Thiessen PA, Bolton EE, Chen J, Fu G, Gindulyte A, Han L, He J, He S, Shoemaker BA, Wang J, Yu B, Zhang J, Bryant SH.
+					PubChem Substance and Compound databases. Nucleic Acids Res. 2016 Jan 4; 44(D1):D1202-13. Epub 2015 Sep 22
 					[PubMed <a href="https://www.ncbi.nlm.nih.gov/pubmed/26400175/" target="_blank">PMID: 26400175</a>] doi: <a href="https://doi.org/10.1093/nar/gkv951" target="_blank">10.1093/nar/gkv951</a>.)
 				</p>
 			</footer>
